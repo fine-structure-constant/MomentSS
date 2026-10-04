@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>留白拼图 · 设计工作台</title>
+    <link rel="stylesheet" href="src/notebook.css">
+  </head>
+  <body>
+    <header>
+      <div class="shell">
+        <h1>留白拼图</h1>
+        <p>一个纯浏览器的旅行图片工作台：排长图、控制朋友圈中部方形缩略图，并把一张照片切成 4 / 6 / 9 张发布序列。</p>
+        <div class="meta" aria-label="项目快照">
+          <span class="tag">阶段：已实现并验证</span>
+          <span class="tag">平台：响应式 Web</span>
+          <span class="tag">更新：2026-10-05</span>
+          <span class="tag">Git：已初始化，忽略规则已配置</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section aria-labelledby="guideline">
+        <h2 id="guideline">设计准则</h2>
+        <div class="principles">
+          <article class="principle"><h3>本地即隐私</h3><p>图片只在浏览器内处理；保存状态与错误文案都要让用户看懂这一点。</p></article>
+          <article class="principle"><h3>结果先于参数</h3><p>画布与朋友圈预览是主角，参数只在选中对象时出现。</p></article>
+          <article class="principle"><h3>触屏也从容</h3><p>手机端不是桌面缩小版；工具切换、上传、排序与导出保持拇指可达。</p></article>
+        </div>
+        <p class="compact">非目标：云端账户、多人协作、AI 修图、社交平台直发与专业图层系统。</p>
+      </section>
+
+      <section aria-labelledby="requirements">
+        <h2 id="requirements">用户需求</h2>
+        <table>
+          <thead><tr><th>ID</th><th>需求与验收</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>REQ-001</td><td>手机与电脑上传本地图片、刷新后恢复草稿、下载结果；不上传服务器。</td><td>accepted</td></tr>
+            <tr><td>REQ-002</td><td>长图工具可排序照片，在任意位置插入文字，并调整颜色、字体、字号、对齐与旋转。</td><td>accepted</td></tr>
+            <tr><td>REQ-003</td><td>封面工具指导裁出正方形，并将其插入长图中部，同时显示中心方形缩略图预览。</td><td>accepted</td></tr>
+            <tr><td>REQ-004</td><td>切图工具可把一张图裁成 2×2、3×2 或 3×3，并按发布顺序下载 4 / 6 / 9 张。</td><td>accepted</td></tr>
+            <tr><td>REQ-005</td><td>明亮、简洁、影像优先，参考 Instagram 的克制与清晰，同时保留自己的编辑器气质。</td><td>accepted</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section aria-labelledby="directions">
+        <h2 id="directions">视觉方向</h2>
+        <p>以下均为 <strong>concept</strong>，不是实现截图。三者共享“阳光摄影工作室”语言：暖白、深海军蓝、杏珊瑚、泳池蓝与浅柠檬；标准 Web 控件；中央方形取景框作为唯一签名动作。</p>
+        <div class="gallery">
+          <figure class="direction recommended">
+            <img src="src/previews/editor-direction-1.png" alt="方向一：左侧排序列表、中间长图画布、右侧属性面板的三栏编辑器">
+            <figcaption><span class="label">Approved</span><h3>方向 1：清晰三栏</h3><p>用户已确认。照片顺序、结果画布和编辑参数同时可见；桌面效率高，手机端折叠为画布优先的纵向工作流。</p></figcaption>
+          </figure>
+          <figure class="direction">
+            <img src="src/previews/editor-direction-2.png" alt="方向二：蓝色工具轨、超大拼图画布与右侧编辑面板">
+            <figcaption><span class="label">Alternate</span><h3>方向 2：画布主导</h3><p>旅行影像存在感最强，朋友圈预览独立清晰；风险是上传、排序和文字面板集中在右侧，操作密度偏高。</p></figcaption>
+          </figure>
+          <figure class="direction">
+            <img src="src/previews/editor-direction-3.png" alt="方向三：中央画布、底部胶片序列和右侧专业属性栏">
+            <figcaption><span class="label">Alternate</span><h3>方向 3：胶片时间线</h3><p>排序操作直观、专业编辑感强；风险是水平时间线在手机端需要另一套编排。</p></figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section aria-labelledby="recommendations">
+        <h2 id="recommendations">建议与取舍</h2>
+        <table>
+          <thead><tr><th>ID</th><th>建议</th><th>理由</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>DEC-001</td><td>采用方向 1，并将三栏在窄屏重排为：画布 → 当前对象工具 → 顺序抽屉。</td><td>在桌面效率与手机可达之间最平衡。</td><td>accepted</td></tr>
+            <tr><td>DEC-002</td><td>使用 IndexedDB 保存图片 Blob 与草稿结构。</td><td>比 localStorage 更适合大图；无需服务器。</td><td>accepted</td></tr>
+            <tr><td>DEC-003</td><td>以 Canvas 2D 生成预览和下载结果，导出前显示尺寸与内存风险。</td><td>浏览器兼容性广，足以覆盖三种工具。</td><td>accepted</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section aria-labelledby="implementation">
+        <h2 id="implementation">实现矩阵</h2>
+        <table>
+          <thead><tr><th>映射</th><th>实现</th><th>证据</th><th>剩余工作</th></tr></thead>
+          <tbody>
+            <tr><td>REQ-001 / DEC-002</td><td>verified</td><td>浏览器上传、刷新恢复 2 个内容块；IndexedDB 草稿代码已检查</td><td>无</td></tr>
+            <tr><td>REQ-002 / DEC-003</td><td>verified</td><td>浏览器实测双图、照片文字叠加与长图预览；生产构建通过</td><td>无</td></tr>
+            <tr><td>REQ-003</td><td>verified</td><td>浏览器实测方形裁切、长图中部插入与合成预览</td><td>无</td></tr>
+            <tr><td>REQ-004</td><td>verified</td><td>4 / 6 / 9 几何单测；浏览器确认 4 图为 2×2 预览和下载顺序</td><td>浏览器首次批量下载时可能要求授权</td></tr>
+            <tr><td>REQ-005 / DEC-001</td><td>verified</td><td>桌面三栏与 390px 手机宽度浏览器检查；无横向溢出</td><td>无</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section aria-labelledby="pending">
+        <h2 id="pending">待确认</h2>
+        <div class="note"><strong>交付状态：</strong>核心功能、响应式布局、隐私说明、错误恢复、测试、生产构建与设计系统文档均已完成。用户可在真实旅行照片上进行最终内容验收。</div>
+      </section>
+
+      <section aria-labelledby="log">
+        <h2 id="log">变更记录</h2>
+        <p><strong>2026-10-05</strong> — 完成长图、封面与切图工具；修正 4 图为 2×2 排列；7 项单元测试和生产构建通过；完成桌面与手机浏览器检查。</p>
+        <p><strong>2026-10-05</strong> — 用户确认方向 1 与先视觉稿后编码；视觉基准已锁定并进入实现。</p>
+        <p><strong>2026-10-05</strong> — 记录产品边界、技术栈与三个视觉基准；Impeccable 引擎下载被网络阻止，采用已安装技能正文的降级流程。</p>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "approved": true,
+  "approvedAt": "2026-10-05",
+  "source": "built-in image generation",
+  "useCase": "ui-mockup",
+  "promptSummary": "Desktop Chinese travel-photo editor with a three-column order/canvas/inspector shell, warm-white photographic workspace, coral export action, and a center-square thumbnail aperture.",
+  "constraints": [
+    "Operate-mode product screen",
+    "Standard familiar web controls",
+    "Bright Instagram-adjacent photographic language",
+    "No server upload",
+    "No decorative glass or gradient text"
+  ]
+}
