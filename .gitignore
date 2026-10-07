@@ -48,3 +48,9 @@ Thumbs.db
 # Temporary downloads created during manual QA
 test-results/
 playwright-report/
+
+# Deployment bundles and server-local configuration
+release/
+deploy/config.json
+__pycache__/
+*.pyc

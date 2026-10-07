@@ -1,0 +1,8 @@
+{
+  "repository": "fine-structure-constant/MomentSS",
+  "root": "/home/rocky/data/service/momentss",
+  "health_url": "http://127.0.0.1:18080/version.json",
+  "timeout": 30,
+  "keep_releases": 5,
+  "proxy_url": ""
+}

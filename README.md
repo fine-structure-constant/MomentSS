@@ -32,6 +32,13 @@ npm run build
 
 生产文件输出到 `dist/`，可部署到任意静态站点托管服务。
 
+## 自动部署到服务器
+
+项目已提供 push 到 `main` 后自动构建并发布静态部署包的 GitHub Actions。
+Rocky Linux 服务器主动下载新版本，通过现有 Nginx 和 Cloudflare Tunnel 提供服务。
+应用目录为 `/home/rocky/data/service/momentss`，域名为 `momentss.renschekhe.site`。
+首次安装命令、配置、权限设置与回滚步骤见 [部署说明](./deploy/README.md)。
+
 ## 隐私与浏览器说明
 
 - 所有图片解码、Canvas 合成和下载都在浏览器中完成。

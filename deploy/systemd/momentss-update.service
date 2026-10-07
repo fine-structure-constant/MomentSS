@@ -1,0 +1,20 @@
+[Unit]
+Description=Download and activate the latest MomentSS static release
+Wants=network-online.target
+After=network-online.target nginx.service
+RequiresMountsFor=/home/rocky/data/service/momentss
+
+[Service]
+Type=oneshot
+User=rocky
+Group=rocky
+WorkingDirectory=/home/rocky/data/service/momentss/tools
+ExecStart=/usr/bin/python3 -B -m momentss_deploy --config /home/rocky/data/service/momentss/config.json
+UMask=0022
+TimeoutStartSec=5min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/rocky/data/service/momentss
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

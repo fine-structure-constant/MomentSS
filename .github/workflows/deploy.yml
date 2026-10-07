@@ -1,0 +1,65 @@
+name: Publish MomentSS deployment
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: momentss-production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install, test and build
+        run: |
+          # The committed lockfile uses a China mirror; hosted runners use npm directly.
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('package-lock.json')
+          data = json.loads(path.read_text())
+          for package in data['packages'].values():
+              url = package.get('resolved', '')
+              if url.startswith('https://registry.npmmirror.com/'):
+                  package['resolved'] = url.replace('https://registry.npmmirror.com/', 'https://registry.npmjs.org/', 1)
+          path.write_text(json.dumps(data))
+          PY
+          npm ci --registry=https://registry.npmjs.org
+          npm test
+          npm run build
+          python3 -m unittest discover -s deploy/tests -v
+      - name: Publish complete deployment bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          if [ "$(gh api "repos/$GH_REPO/commits/main" --jq .sha)" != "$COMMIT" ]; then
+            echo 'A newer main commit exists; skip publishing this older build.'
+            exit 0
+          fi
+          tag="deploy-${RUN_NUMBER}-${RUN_ATTEMPT}-${COMMIT:0:12}"
+          python3 deploy/package_release.py --repository "$GH_REPO" --commit "$COMMIT" --tag "$tag"
+          gh release create "$tag" release/momentss.tar.gz release/deployment.json \
+            --draft --target "$COMMIT" --title "MomentSS $tag" --notes-file release/notes.md
+          gh release edit "$tag" --draft=false --latest
