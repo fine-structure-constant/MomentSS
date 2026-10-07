@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeCropRect, fitCanvasSize, gridDimensions } from './geometry'
+import { computeCropRect, fitCanvasSize, gridDimensions, resolvePhotoOverlayLayout } from './geometry'
 
 describe('computeCropRect', () => {
   it('centers a square inside a landscape source', () => {
@@ -36,5 +36,21 @@ describe('fitCanvasSize', () => {
     const result = fitCanvasSize(1080, 32_000)
     expect(result.height).toBeLessThanOrEqual(16_000)
     expect(result.reduced).toBe(true)
+  })
+})
+
+describe('resolvePhotoOverlayLayout', () => {
+  it('migrates legacy top/center/bottom positions', () => {
+    expect(resolvePhotoOverlayLayout({ position: 'top' }).y).toBe(0.18)
+    expect(resolvePhotoOverlayLayout({ position: 'center' }).y).toBe(0.5)
+    expect(resolvePhotoOverlayLayout({ position: 'bottom' }).y).toBe(0.78)
+  })
+
+  it('keeps a wide text box inside the photo', () => {
+    expect(resolvePhotoOverlayLayout({ x: 0.02, y: 2, width: 0.8 })).toEqual({
+      x: 0.4,
+      y: 0.94,
+      width: 0.8,
+    })
   })
 })

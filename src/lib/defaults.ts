@@ -33,7 +33,7 @@ export function createPhotoOverlay(): PhotoOverlay {
   return {
     text: '把风景写进故事里',
     color: '#ffffff',
-    background: 'rgba(16, 34, 61, 0.58)',
+    background: '#10223d',
     fontFamily: 'ui-rounded, "PingFang SC", "Microsoft YaHei UI", sans-serif',
     fontSize: 54,
     fontWeight: 600,
@@ -41,6 +41,9 @@ export function createPhotoOverlay(): PhotoOverlay {
     align: 'center',
     rotation: 0,
     lineHeight: 1.25,
-    position: 'bottom',
+    x: 0.5,
+    y: 0.78,
+    width: 0.72,
+    backgroundOpacity: 58,
   }
 }

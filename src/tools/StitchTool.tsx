@@ -1,14 +1,9 @@
 import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
   ArrowDown,
   ArrowUp,
-  Bold,
   Download,
   GripVertical,
   Image as ImageIcon,
-  Italic,
   Plus,
   RotateCcw,
   Trash2,
@@ -18,9 +13,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { canvasToBlob, downloadBlob, filesToPhotoBlocks, renderStitch, type RenderReport } from '../lib/canvas'
 import { createPhotoOverlay, createTextBlock, DEFAULT_SETTINGS } from '../lib/defaults'
 import { clearStitchDraft, loadStitchDraft, saveStitchDraft } from '../lib/storage'
-import type { ComposerBlock, ComposerSettings, PhotoBlock, TextAlign, TextAppearance, TextBlock } from '../types'
+import type { ComposerBlock, ComposerSettings, PhotoBlock, TextBlock } from '../types'
 import { useObjectUrl } from '../hooks/useObjectUrl'
 import { FieldGroup, RangeField } from '../components/Fields'
+import { PhotoTextEditorModal } from '../components/PhotoTextEditorModal'
+import { TextControls } from '../components/TextControls'
 import { UploadDropzone } from '../components/UploadDropzone'
 import type { ToastMessage } from '../components/StatusToast'
 
@@ -28,59 +25,9 @@ interface StitchToolProps {
   onToast: (message: ToastMessage) => void
 }
 
-const FONT_OPTIONS = [
-  { label: '清朗圆体', value: 'ui-rounded, "PingFang SC", "Microsoft YaHei UI", sans-serif' },
-  { label: '现代黑体', value: '"Avenir Next", "PingFang SC", "Microsoft YaHei UI", sans-serif' },
-  { label: '人文宋体', value: '"Songti SC", SimSun, serif' },
-  { label: '旅行手札', value: 'KaiTi, "STKaiti", serif' },
-]
-
 function PhotoThumbnail({ block }: { block: PhotoBlock }) {
   const url = useObjectUrl(block.blob)
   return url ? <img src={url} alt="" /> : <span className="thumb-placeholder"><ImageIcon size={18} /></span>
-}
-
-function TextControls({ value, onChange }: { value: TextAppearance; onChange: (patch: Partial<TextAppearance>) => void }) {
-  const alignment: Array<{ value: TextAlign; icon: typeof AlignLeft; label: string }> = [
-    { value: 'left', icon: AlignLeft, label: '左对齐' },
-    { value: 'center', icon: AlignCenter, label: '居中' },
-    { value: 'right', icon: AlignRight, label: '右对齐' },
-  ]
-
-  return (
-    <>
-      <label className="field">
-        <span className="field__label">文字内容</span>
-        <textarea rows={3} value={value.text} onChange={(event) => onChange({ text: event.currentTarget.value })} />
-      </label>
-      <label className="field">
-        <span className="field__label">字体</span>
-        <select value={value.fontFamily} onChange={(event) => onChange({ fontFamily: event.currentTarget.value })}>
-          {FONT_OPTIONS.map((font) => <option key={font.label} value={font.value}>{font.label}</option>)}
-        </select>
-      </label>
-      <div className="control-row">
-        <button type="button" className={`icon-toggle ${value.fontWeight >= 600 ? 'is-active' : ''}`} aria-pressed={value.fontWeight >= 600} onClick={() => onChange({ fontWeight: value.fontWeight >= 600 ? 400 : 700 })}><Bold size={18} /><span className="visually-hidden">粗体</span></button>
-        <button type="button" className={`icon-toggle ${value.italic ? 'is-active' : ''}`} aria-pressed={value.italic} onClick={() => onChange({ italic: !value.italic })}><Italic size={18} /><span className="visually-hidden">斜体</span></button>
-        <div className="segmented compact-segment" aria-label="文字对齐">
-          {alignment.map(({ value: align, icon: Icon, label }) => (
-            <button key={align} type="button" className={value.align === align ? 'is-active' : ''} aria-label={label} aria-pressed={value.align === align} onClick={() => onChange({ align })}><Icon size={18} /></button>
-          ))}
-        </div>
-      </div>
-      <div className="color-row">
-        <label><span>文字</span><input type="color" value={normalizeColor(value.color, '#10223d')} onChange={(event) => onChange({ color: event.currentTarget.value })} /></label>
-        <label><span>底色</span><input type="color" value={normalizeColor(value.background, '#ffffff')} onChange={(event) => onChange({ background: event.currentTarget.value })} /></label>
-      </div>
-      <RangeField label="字号" value={value.fontSize} min={24} max={128} suffix="px" onChange={(fontSize) => onChange({ fontSize })} />
-      <RangeField label="倾斜角度" value={value.rotation} min={-12} max={12} suffix="°" onChange={(rotation) => onChange({ rotation })} />
-      <RangeField label="行距" value={value.lineHeight} min={1} max={2} step={0.05} suffix="×" onChange={(lineHeight) => onChange({ lineHeight })} />
-    </>
-  )
-}
-
-function normalizeColor(value: string, fallback: string): string {
-  return /^#[0-9a-f]{6}$/i.test(value) ? value : fallback
 }
 
 export function StitchTool({ onToast }: StitchToolProps) {
@@ -92,9 +39,14 @@ export function StitchTool({ onToast }: StitchToolProps) {
   const [renderReport, setRenderReport] = useState<RenderReport | null>(null)
   const [busy, setBusy] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [photoEditorId, setPhotoEditorId] = useState<string | null>(null)
   const previewRef = useRef<HTMLCanvasElement>(null)
 
   const selected = useMemo(() => blocks.find((block) => block.id === selectedId) ?? null, [blocks, selectedId])
+  const editingPhoto = useMemo(() => {
+    const block = blocks.find((item) => item.id === photoEditorId)
+    return block?.type === 'photo' ? block : null
+  }, [blocks, photoEditorId])
 
   useEffect(() => {
     void loadStitchDraft()
@@ -181,6 +133,7 @@ export function StitchTool({ onToast }: StitchToolProps) {
   const remove = (id: string) => {
     setBlocks((current) => current.filter((block) => block.id !== id))
     if (selectedId === id) setSelectedId(null)
+    if (photoEditorId === id) setPhotoEditorId(null)
   }
 
   const updateSelectedText = (patch: Partial<TextBlock>) => {
@@ -193,6 +146,11 @@ export function StitchTool({ onToast }: StitchToolProps) {
 
   const updatePhoto = (id: string, patch: Partial<PhotoBlock>) => {
     setBlocks((current) => current.map((block) => block.id === id && block.type === 'photo' ? { ...block, ...patch } : block))
+  }
+
+  const openPhotoTextEditor = (photo: PhotoBlock) => {
+    if (!photo.overlay) updatePhoto(photo.id, { overlay: createPhotoOverlay() })
+    setPhotoEditorId(photo.id)
   }
 
   const exportImage = async () => {
@@ -216,19 +174,25 @@ export function StitchTool({ onToast }: StitchToolProps) {
     if (blocks.length && !window.confirm('清空当前长图草稿？此操作无法撤销。')) return
     setBlocks([])
     setSelectedId(null)
+    setPhotoEditorId(null)
     setSettings(DEFAULT_SETTINGS)
     await clearStitchDraft()
     onToast({ text: '长图草稿已清空。', tone: 'info' })
   }
 
   return (
+    <>
     <div className="stitch-layout">
       <aside className="sequence-panel" aria-label="长图内容顺序">
         <div className="panel-heading">
           <div><h2>图文顺序</h2><p>{blocks.length ? `${blocks.length} 个内容块` : '从照片开始'}</p></div>
           <button type="button" className="icon-button" onClick={() => void resetDraft()} aria-label="清空草稿"><RotateCcw size={18} /></button>
         </div>
-        <UploadDropzone compact multiple onFiles={handleFiles} label="添加照片" />
+        <div className="sequence-toolbar" aria-label="添加内容">
+          <UploadDropzone compact multiple onFiles={handleFiles} label="添加照片" />
+          <button type="button" className="secondary-button" onClick={() => insertText()}><Type size={17} /> 文字卡片</button>
+        </div>
+        <div className="sequence-scroll">
         <ol className="sequence-list">
           {blocks.map((block, index) => (
             <li key={block.id}>
@@ -262,7 +226,7 @@ export function StitchTool({ onToast }: StitchToolProps) {
         {!blocks.length && (
           <div className="mini-empty"><ImageIcon size={26} /><p>上传多张照片后，在这里拖动排序。</p></div>
         )}
-        <button type="button" className="secondary-button wide-button" onClick={() => insertText()}><Type size={17} /> 添加文字卡片</button>
+        </div>
       </aside>
 
       <main className="canvas-stage" aria-label="长图实时预览">
@@ -296,14 +260,11 @@ export function StitchTool({ onToast }: StitchToolProps) {
         )}
 
         {selected?.type === 'photo' && (
-          <FieldGroup title="图片文字" actions={selected.overlay ? <button type="button" className="danger-text" onClick={() => updatePhoto(selected.id, { overlay: undefined })}>移除</button> : undefined}>
+          <FieldGroup title="图片文字">
             {!selected.overlay ? (
-              <div className="inspector-empty"><p>可以在这张照片上叠加标题，并调整字体、颜色、倾斜度与位置。</p><button type="button" className="secondary-button" onClick={() => updatePhoto(selected.id, { overlay: createPhotoOverlay() })}><Plus size={17} /> 添加图片文字</button></div>
+              <div className="inspector-empty"><p>在独立画面编辑器中创建文字框，可直接拖到图片任意位置。</p><button type="button" className="secondary-button" onClick={() => openPhotoTextEditor(selected)}><Plus size={17} /> 添加图片文字</button></div>
             ) : (
-              <>
-                <TextControls value={selected.overlay} onChange={(patch) => updatePhoto(selected.id, { overlay: { ...selected.overlay!, ...patch } })} />
-                <label className="field"><span className="field__label">位置</span><select value={selected.overlay.position} onChange={(event) => updatePhoto(selected.id, { overlay: { ...selected.overlay!, position: event.currentTarget.value as 'top' | 'center' | 'bottom' } })}><option value="top">顶部</option><option value="center">居中</option><option value="bottom">底部</option></select></label>
-              </>
+              <div className="inspector-empty"><p>图片文字已添加。打开画面编辑器可拖动位置，并调整文本框宽度、字体、颜色和角度。</p><button type="button" className="secondary-button" onClick={() => openPhotoTextEditor(selected)}><Type size={17} /> 编辑画面文字</button></div>
             )}
           </FieldGroup>
         )}
@@ -318,5 +279,18 @@ export function StitchTool({ onToast }: StitchToolProps) {
         </FieldGroup>
       </aside>
     </div>
+    {editingPhoto?.overlay && (
+      <PhotoTextEditorModal
+        photo={editingPhoto}
+        overlay={editingPhoto.overlay}
+        onChange={(overlay) => updatePhoto(editingPhoto.id, { overlay })}
+        onClose={() => setPhotoEditorId(null)}
+        onRemove={() => {
+          updatePhoto(editingPhoto.id, { overlay: undefined })
+          setPhotoEditorId(null)
+        }}
+      />
+    )}
+    </>
   )
 }

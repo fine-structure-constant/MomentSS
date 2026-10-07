@@ -7,7 +7,7 @@ import type {
   SourceImage,
   TextBlock,
 } from '../types'
-import { computeCropRect, fitCanvasSize, gridDimensions } from './geometry'
+import { clamp, computeCropRect, fitCanvasSize, gridDimensions, resolvePhotoOverlayLayout } from './geometry'
 
 interface LoadedImage {
   source: CanvasImageSource
@@ -112,21 +112,38 @@ function drawPhotoOverlay(
   height: number,
   scale: number,
 ): void {
-  const boxHeight = Math.max(92 * scale, overlay.fontSize * overlay.lineHeight * scale + 40 * scale)
-  const boxY = overlay.position === 'top' ? y + 28 * scale : overlay.position === 'center' ? y + (height - boxHeight) / 2 : y + height - boxHeight - 28 * scale
-  context.save()
-  context.fillStyle = overlay.background
-  context.fillRect(x + 24 * scale, boxY, width - 48 * scale, boxHeight)
-  context.translate(x + width / 2, boxY + boxHeight / 2)
-  context.rotate((overlay.rotation * Math.PI) / 180)
+  const layout = resolvePhotoOverlayLayout(overlay)
+  const boxWidth = width * layout.width
+  const textPadding = 28 * scale
   const style = overlay.italic ? 'italic' : 'normal'
+  context.font = `${style} ${overlay.fontWeight} ${overlay.fontSize * scale}px ${overlay.fontFamily}`
+  const lines = wrapText(context, overlay.text, Math.max(40, boxWidth - textPadding * 2))
+  const lineHeight = overlay.fontSize * overlay.lineHeight * scale
+  const boxHeight = Math.max(92 * scale, lines.length * lineHeight + 40 * scale)
+  const centerX = clamp(x + width * layout.x, x + boxWidth / 2, x + width - boxWidth / 2)
+  const centerY = clamp(y + height * layout.y, y + boxHeight / 2, y + height - boxHeight / 2)
+  const boxX = centerX - boxWidth / 2
+  const boxY = centerY - boxHeight / 2
+  context.save()
+  context.fillStyle = colorWithOpacity(overlay.background, overlay.backgroundOpacity ?? 58)
+  context.fillRect(boxX, boxY, boxWidth, boxHeight)
+  context.translate(centerX, centerY)
+  context.rotate((overlay.rotation * Math.PI) / 180)
   context.font = `${style} ${overlay.fontWeight} ${overlay.fontSize * scale}px ${overlay.fontFamily}`
   context.textAlign = overlay.align
   context.textBaseline = 'middle'
   context.fillStyle = overlay.color
-  const textX = overlay.align === 'left' ? -width / 2 + 52 * scale : overlay.align === 'right' ? width / 2 - 52 * scale : 0
-  context.fillText(overlay.text, textX, 0, width - 104 * scale)
+  const textX = overlay.align === 'left' ? -boxWidth / 2 + textPadding : overlay.align === 'right' ? boxWidth / 2 - textPadding : 0
+  const startY = -((lines.length - 1) * lineHeight) / 2
+  lines.forEach((line, index) => context.fillText(line, textX, startY + index * lineHeight, boxWidth - textPadding * 2))
   context.restore()
+}
+
+function colorWithOpacity(color: string, opacity: number): string {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color)
+  if (!match) return color
+  const [, r, g, b] = match
+  return `rgba(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}, ${opacity / 100})`
 }
 
 export interface RenderReport {

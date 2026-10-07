@@ -1,4 +1,4 @@
-import type { CropState } from '../types'
+import type { CropState, PhotoOverlay } from '../types'
 
 export interface CropRect {
   sx: number
@@ -44,6 +44,22 @@ export function gridDimensions(count: 4 | 6 | 9): { columns: number; rows: numbe
   if (count === 4) return { columns: 2, rows: 2 }
   if (count === 6) return { columns: 3, rows: 2 }
   return { columns: 3, rows: 3 }
+}
+
+export interface PhotoOverlayLayout {
+  x: number
+  y: number
+  width: number
+}
+
+export function resolvePhotoOverlayLayout(overlay: Partial<PhotoOverlay>): PhotoOverlayLayout {
+  const width = clamp(overlay.width ?? 0.72, 0.28, 0.94)
+  const legacyY = overlay.position === 'top' ? 0.18 : overlay.position === 'center' ? 0.5 : 0.78
+  return {
+    x: clamp(overlay.x ?? 0.5, width / 2, 1 - width / 2),
+    y: clamp(overlay.y ?? legacyY, 0.06, 0.94),
+    width,
+  }
 }
 
 export function fitCanvasSize(

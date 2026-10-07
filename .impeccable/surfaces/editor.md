@@ -37,3 +37,10 @@ The Impeccable engine binary and automated comp-diff detector were unavailable, 
 - **ceiling:** reached — native devices include the rectangular photo canvas, square aperture/grid, flat editing panels, restrained ambient depth, designed Chinese hierarchy, and short state motion with reduced-motion support.
 - **material fixes:** none after the 4-image order sample was corrected to 2 columns × 2 rows.
 - **keep:** preserve the canvas-first hierarchy and the distinct coral-action / pool-blue-state roles.
+
+## Refinement verification — 2026-10-07
+
+- Desktop stitch mode now locks the three columns to the viewport and gives sequence, canvas, and inspector their own scroll ownership.
+- The left add controls remain above a dedicated sequence-list scroller.
+- Photo text opens in a protected-focus editor with a real image preview, draggable normalized coordinates, keyboard nudging, width controls, and matching Canvas export geometry.
+- Verified at 1280×720 and 390×844; no horizontal overflow or browser console errors. Geometry tests: 9 passed. Production build: passed.

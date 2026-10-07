@@ -16,7 +16,13 @@ export interface TextAppearance {
 }
 
 export interface PhotoOverlay extends TextAppearance {
-  position: 'top' | 'center' | 'bottom'
+  /** Normalized center point and width inside the photo. Optional for legacy drafts. */
+  x?: number
+  y?: number
+  width?: number
+  backgroundOpacity?: number
+  /** Legacy three-position drafts are migrated at render time. */
+  position?: 'top' | 'center' | 'bottom'
 }
 
 export interface PhotoBlock {

@@ -14,7 +14,7 @@
         <div class="meta" aria-label="项目快照">
           <span class="tag">阶段：已实现并验证</span>
           <span class="tag">平台：响应式 Web</span>
-          <span class="tag">更新：2026-10-05</span>
+          <span class="tag">更新：2026-10-07</span>
           <span class="tag">Git：已初始化，忽略规则已配置</span>
         </div>
       </div>
@@ -41,6 +41,9 @@
             <tr><td>REQ-003</td><td>封面工具指导裁出正方形，并将其插入长图中部，同时显示中心方形缩略图预览。</td><td>accepted</td></tr>
             <tr><td>REQ-004</td><td>切图工具可把一张图裁成 2×2、3×2 或 3×3，并按发布顺序下载 4 / 6 / 9 张。</td><td>accepted</td></tr>
             <tr><td>REQ-005</td><td>明亮、简洁、影像优先，参考 Instagram 的克制与清晰，同时保留自己的编辑器气质。</td><td>accepted</td></tr>
+            <tr><td>REQ-006</td><td>桌面长图编辑器的顺序、画布和属性三栏必须拥有独立滚动边界，不能带动整页或彼此联动。</td><td>accepted</td></tr>
+            <tr><td>REQ-007</td><td>左栏“添加照片 / 文字卡片”固定在顶部，仅图文顺序列表进入滚动容器。</td><td>accepted</td></tr>
+            <tr><td>REQ-008</td><td>图片文字使用当前窗口内的专用弹窗编辑器，文本框可在图片内自由拖动与精细定位，不受上中下三档限制。</td><td>accepted</td></tr>
           </tbody>
         </table>
       </section>
@@ -82,10 +85,12 @@
           <thead><tr><th>映射</th><th>实现</th><th>证据</th><th>剩余工作</th></tr></thead>
           <tbody>
             <tr><td>REQ-001 / DEC-002</td><td>verified</td><td>浏览器上传、刷新恢复 2 个内容块；IndexedDB 草稿代码已检查</td><td>无</td></tr>
-            <tr><td>REQ-002 / DEC-003</td><td>verified</td><td>浏览器实测双图、照片文字叠加与长图预览；生产构建通过</td><td>无</td></tr>
+            <tr><td>REQ-002 / REQ-008 / DEC-003</td><td>verified</td><td>浏览器实测图片文字弹窗、自由坐标、方向键微调、文本框宽度和长图预览；生产构建通过</td><td>无</td></tr>
             <tr><td>REQ-003</td><td>verified</td><td>浏览器实测方形裁切、长图中部插入与合成预览</td><td>无</td></tr>
             <tr><td>REQ-004</td><td>verified</td><td>4 / 6 / 9 几何单测；浏览器确认 4 图为 2×2 预览和下载顺序</td><td>浏览器首次批量下载时可能要求授权</td></tr>
             <tr><td>REQ-005 / DEC-001</td><td>verified</td><td>桌面三栏与 390px 手机宽度浏览器检查；无横向溢出</td><td>无</td></tr>
+            <tr><td>REQ-006</td><td>verified</td><td>1280×720 浏览器测得三栏固定为 652px 高；中栏和右栏分别产生独立 scrollHeight，页面本身不滚动</td><td>无</td></tr>
+            <tr><td>REQ-007</td><td>verified</td><td>添加工具位于左栏固定区；`.sequence-scroll` 独占剩余高度并配置垂直滚动</td><td>无</td></tr>
           </tbody>
         </table>
       </section>
@@ -97,6 +102,7 @@
 
       <section aria-labelledby="log">
         <h2 id="log">变更记录</h2>
+        <p><strong>2026-10-07</strong> — 三栏改为独立滚动；左栏添加工具置顶、顺序列表单独滚动；图片文字改为支持拖动、键盘微调和自由坐标的弹窗编辑器。桌面与 390px 手机端验证通过，9 项测试通过。</p>
         <p><strong>2026-10-05</strong> — 完成长图、封面与切图工具；修正 4 图为 2×2 排列；7 项单元测试和生产构建通过；完成桌面与手机浏览器检查。</p>
         <p><strong>2026-10-05</strong> — 用户确认方向 1 与先视觉稿后编码；视觉基准已锁定并进入实现。</p>
         <p><strong>2026-10-05</strong> — 记录产品边界、技术栈与三个视觉基准；Impeccable 引擎下载被网络阻止，采用已安装技能正文的降级流程。</p>
