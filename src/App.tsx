@@ -17,6 +17,7 @@ function App() {
   const { locale, setLocale, t } = useI18n()
   const [activeTool, setActiveTool] = useState<ToolId>('stitch')
   const [toast, setToast] = useState<ToastMessage | null>(null)
+  const activeToolCopy = TOOLS.find((tool) => tool.id === activeTool) ?? TOOLS[0]
 
   const showToast = useCallback((message: ToastMessage) => setToast(message), [])
 
@@ -28,10 +29,10 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
+      <aside className="app-rail">
         <a className="brand" href="#main" aria-label={t('app.home')}>
           <span className="brand__mark" aria-hidden="true"><i /><i /><i /><i /></span>
-          <span><strong>{t('app.brand')}</strong><small>{t('app.tagline')}</small></span>
+          <strong>{t('app.brand')}</strong>
         </a>
 
         <nav className="tool-tabs" aria-label={t('app.tools')}>
@@ -48,6 +49,13 @@ function App() {
             </button>
           ))}
         </nav>
+      </aside>
+
+      <header className="app-header">
+        <div className="project-heading">
+          <strong>{t(activeToolCopy.label)}</strong>
+          <span>{t('app.draftLocal')}</span>
+        </div>
 
         <div className="header-actions">
           <div className="local-badge"><ShieldCheck aria-hidden="true" size={17} /><span>{t('app.localOnly')}</span></div>

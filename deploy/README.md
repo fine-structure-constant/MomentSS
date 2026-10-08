@@ -113,8 +113,8 @@ python3 -B -m unittest discover -s deploy/tests -v
 ```bash
 cd /home/rocky/data/service/momentss/tools
 python3 -B -m momentss_deploy --config /home/rocky/data/service/momentss/config.json
-curl -f http://127.0.0.1:18080/version.json
-curl -I http://127.0.0.1:18080/
+curl -q --noproxy '*' -f http://127.0.0.1:18080/version.json
+curl -q --noproxy '*' -I http://127.0.0.1:18080/
 ```
 
 预期日志为 `Activated deploy-...`；version.json 中有对应 tag 和 commit。
@@ -196,7 +196,12 @@ namei -l /home/rocky/data/service/momentss/current/index.html
 ```
 
 403 先检查 Nginx 的运行账号和父目录 ACL；SELinux 已改 Enforcing 时也要检查 AVC。
-502 先检查 Tunnel 的 service URL 和 `curl http://127.0.0.1:18080/`。
+如果部署显示 Activated，但普通 curl 访问 127.0.0.1 返回 502，先用 `curl -q --noproxy '*' -v http://127.0.0.1:18080/version.json` 对照。
+部署工具的本机健康检查禁用代理；普通 curl 可能继承 http_proxy/all_proxy 或 ~/.curlrc，经过 Mihomo 后失败。
+`-q` 忽略 curl 默认配置文件，`--noproxy '*'` 禁用此次请求的代理。
+如果绕过代理后正常，可在服务器 shell 中给已有 no_proxy 列表追加 localhost、127.0.0.1、::1。
+如果本机直连正常但公网域名 502，检查 Tunnel 的 service URL 和相关 cloudflared 日志。
+如果本机直连仍异常，再检查站点 error.log 和当前 getenforce 状态；SELinux 原因为准应有匹配的 AVC 拒绝记录。
 下载超时先测试 GitHub 直连/代理，并检查 config.json 的 proxy_url。
 如果下载失败，下一次 timer 会重试，已有网站继续服务。
 

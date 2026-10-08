@@ -45,5 +45,10 @@ export function createPhotoOverlay(defaultText: string): PhotoOverlay {
     y: 0.78,
     width: 0.72,
     backgroundOpacity: 58,
+    boxPadding: 28,
+    borderStyle: 'none',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    borderRadius: 0,
   }
 }

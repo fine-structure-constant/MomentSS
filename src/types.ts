@@ -21,6 +21,12 @@ export interface PhotoOverlay extends TextAppearance {
   y?: number
   width?: number
   backgroundOpacity?: number
+  /** Text-container styling. Optional fields keep older drafts compatible. */
+  boxPadding?: number
+  borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted'
+  borderWidth?: number
+  borderColor?: string
+  borderRadius?: number
   /** Legacy three-position drafts are migrated at render time. */
   position?: 'top' | 'center' | 'bottom'
 }
@@ -33,6 +39,22 @@ export interface PhotoBlock {
   width: number
   height: number
   overlay?: PhotoOverlay
+  /** Percentage of the natural rendered height used by the photo frame. */
+  frameHeight?: number
+  /** Crop controls inside the frame. Optional for legacy drafts. */
+  cropZoom?: number
+  cropX?: number
+  cropY?: number
+}
+
+export interface PhotoRowBlock {
+  id: string
+  type: 'photo-row'
+  photos: [PhotoBlock, PhotoBlock]
+  /** Row height as a percentage of the full collage content width. */
+  heightRatio?: number
+  /** Gap between the two cells in output pixels. */
+  gap?: number
 }
 
 export interface TextBlock extends TextAppearance {
@@ -41,7 +63,7 @@ export interface TextBlock extends TextAppearance {
   padding: number
 }
 
-export type ComposerBlock = PhotoBlock | TextBlock
+export type ComposerBlock = PhotoBlock | PhotoRowBlock | TextBlock
 
 export interface ComposerSettings {
   width: number
