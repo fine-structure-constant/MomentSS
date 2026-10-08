@@ -14,7 +14,7 @@
         <div class="meta" aria-label="项目快照">
           <span class="tag">阶段：已实现并验证</span>
           <span class="tag">平台：响应式 Web</span>
-          <span class="tag">更新：2026-10-07</span>
+          <span class="tag">更新：2026-10-08</span>
           <span class="tag">Git：已初始化，忽略规则已配置</span>
         </div>
       </div>
@@ -28,7 +28,7 @@
           <article class="principle"><h3>结果先于参数</h3><p>画布与朋友圈预览是主角，参数只在选中对象时出现。</p></article>
           <article class="principle"><h3>触屏也从容</h3><p>手机端不是桌面缩小版；工具切换、上传、排序与导出保持拇指可达。</p></article>
         </div>
-        <p class="compact">非目标：云端账户、多人协作、AI 修图、社交平台直发与专业图层系统。</p>
+        <p class="compact">非目标：云端账户、多人协作、AI 修图、社交平台直发与完整桌面级图像处理套件。</p>
       </section>
 
       <section aria-labelledby="requirements">
@@ -41,30 +41,44 @@
             <tr><td>REQ-003</td><td>封面工具指导裁出正方形，并将其插入长图中部，同时显示中心方形缩略图预览。</td><td>accepted</td></tr>
             <tr><td>REQ-004</td><td>切图工具可把一张图裁成 2×2、3×2 或 3×3，并按发布顺序下载 4 / 6 / 9 张。</td><td>accepted</td></tr>
             <tr><td>REQ-005</td><td>明亮、简洁、影像优先，参考 Instagram 的克制与清晰，同时保留自己的编辑器气质。</td><td>accepted</td></tr>
-            <tr><td>REQ-006</td><td>桌面长图编辑器的顺序、画布和属性三栏必须拥有独立滚动边界，不能带动整页或彼此联动。</td><td>accepted</td></tr>
-            <tr><td>REQ-007</td><td>左栏“添加照片 / 文字卡片”固定在顶部，仅图文顺序列表进入滚动容器。</td><td>accepted</td></tr>
+            <tr><td>REQ-006</td><td>桌面长图编辑器的工具、画布和属性区域必须拥有独立滚动边界，不能带动整页或彼此联动。</td><td>accepted</td></tr>
+            <tr><td>REQ-007</td><td>左栏固定添加工具、顺序列表单独滚动。</td><td>superseded by REQ-010 / 011</td></tr>
             <tr><td>REQ-008</td><td>图片文字使用当前窗口内的专用弹窗编辑器，文本框可在图片内自由拖动与精细定位，不受上中下三档限制。</td><td>accepted</td></tr>
             <tr><td>REQ-009</td><td>界面支持简中、繁中与英语；文案集中管理，便于直接调整内容。</td><td>accepted</td></tr>
+            <tr><td>REQ-010</td><td>整体 UI 改为方向 2：青色竖向工具轨、顶部项目栏、中央大画布与右侧编辑工作区。</td><td>accepted</td></tr>
+            <tr><td>REQ-011</td><td>右侧栏参考 Adobe 的信息架构，分开“导入 / 图层 / 调整”；图层管理顺序，对每个图片或文字容器调整内部属性。</td><td>accepted</td></tr>
+            <tr><td>REQ-012</td><td>图片文字的底色和边框必须随文字整体旋转；底色容器支持内边距、边框类型、粗细、颜色和圆角。</td><td>accepted</td></tr>
+            <tr><td>REQ-013</td><td>导入按钮缩小，并以每行三个的资源网格展示全部图片与文字容器。</td><td>accepted</td></tr>
+            <tr><td>REQ-014</td><td>图层使用更克制的矩形轮廓；只在底部添加文字；相邻两张图片可横排在同一行并分别调整。</td><td>accepted</td></tr>
           </tbody>
         </table>
       </section>
 
       <section aria-labelledby="directions">
         <h2 id="directions">视觉方向</h2>
-        <p>以下均为 <strong>concept</strong>，不是实现截图。三者共享“阳光摄影工作室”语言：暖白、深海军蓝、杏珊瑚、泳池蓝与浅柠檬；标准 Web 控件；中央方形取景框作为唯一签名动作。</p>
+        <p>以下三张为早期 <strong>concept</strong>。2026-10-08 用户重新选择方向 2，它现在是视觉权威；方向 1 的旧批准已被明确取代。</p>
         <div class="gallery">
-          <figure class="direction recommended">
-            <img src="src/previews/editor-direction-1.png" alt="方向一：左侧排序列表、中间长图画布、右侧属性面板的三栏编辑器">
-            <figcaption><span class="label">Approved</span><h3>方向 1：清晰三栏</h3><p>用户已确认。照片顺序、结果画布和编辑参数同时可见；桌面效率高，手机端折叠为画布优先的纵向工作流。</p></figcaption>
-          </figure>
           <figure class="direction">
+            <img src="src/previews/editor-direction-1.png" alt="方向一：左侧排序列表、中间长图画布、右侧属性面板的三栏编辑器">
+            <figcaption><span class="label">Superseded</span><h3>方向 1：清晰三栏</h3><p>曾作为首版实现基准；现已被方向 2 取代，保留为决策历史。</p></figcaption>
+          </figure>
+          <figure class="direction recommended">
             <img src="src/previews/editor-direction-2.png" alt="方向二：蓝色工具轨、超大拼图画布与右侧编辑面板">
-            <figcaption><span class="label">Alternate</span><h3>方向 2：画布主导</h3><p>旅行影像存在感最强，朋友圈预览独立清晰；风险是上传、排序和文字面板集中在右侧，操作密度偏高。</p></figcaption>
+            <figcaption><span class="label">Approved</span><h3>方向 2：画布主导</h3><p>青色工具轨、中央画布和右侧专业工作区成为当前实现；右栏通过顶部菜单化解操作密度。</p></figcaption>
           </figure>
           <figure class="direction">
             <img src="src/previews/editor-direction-3.png" alt="方向三：中央画布、底部胶片序列和右侧专业属性栏">
             <figcaption><span class="label">Alternate</span><h3>方向 3：胶片时间线</h3><p>排序操作直观、专业编辑感强；风险是水平时间线在手机端需要另一套编排。</p></figcaption>
           </figure>
+        </div>
+        <h3>实现截图</h3>
+        <div class="gallery">
+          <figure class="direction"><img src="src/previews/editor-direction-2-implemented-layers.png" alt="方向二实现：桌面图层面板与中央画布"><figcaption><span class="label">Implementation capture</span><h3>图层工作区</h3><p>1440×900，工具轨、画布与图层面板独立分区。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-direction-2-implemented-adjust.png" alt="方向二实现：图片容器调整面板"><figcaption><span class="label">Implementation capture</span><h3>图片容器调整</h3><p>容器高度、内部缩放与焦点位置直接驱动 Canvas。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-direction-2-implemented-mobile.png" alt="方向二实现：390像素手机端底部工具栏"><figcaption><span class="label">Implementation capture</span><h3>手机重排</h3><p>390×844，竖向工具轨转为固定底部导航，画布仍优先。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-direction-2-assets.png" alt="方向二实现：紧凑导入按钮和三列资源缩略图"><figcaption><span class="label">Implementation capture</span><h3>资源导入</h3><p>上传与文字按钮紧凑并列，已导入图片与文字容器按三列展示。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-direction-2-two-photo-row-layers.png" alt="方向二实现：图层面板中的双图横排"><figcaption><span class="label">Implementation capture</span><h3>双图横排图层</h3><p>一行包含两个可独立选择的图片容器，底部集中新增与拆分动作。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-direction-2-text-container.png" alt="图片文字编辑器中旋转的底色和虚线圆角边框"><figcaption><span class="label">Implementation capture</span><h3>文字容器几何</h3><p>文字、底色、内边距、圆角与边框作为整体旋转。</p></figcaption></figure>
         </div>
       </section>
 
@@ -73,9 +87,10 @@
         <table>
           <thead><tr><th>ID</th><th>建议</th><th>理由</th><th>状态</th></tr></thead>
           <tbody>
-            <tr><td>DEC-001</td><td>采用方向 1，并将三栏在窄屏重排为：画布 → 当前对象工具 → 顺序抽屉。</td><td>在桌面效率与手机可达之间最平衡。</td><td>accepted</td></tr>
+            <tr><td>DEC-001</td><td>采用方向 1，并将三栏在窄屏重排。</td><td>首版布局决策。</td><td>superseded</td></tr>
             <tr><td>DEC-002</td><td>使用 IndexedDB 保存图片 Blob 与草稿结构。</td><td>比 localStorage 更适合大图；无需服务器。</td><td>accepted</td></tr>
             <tr><td>DEC-003</td><td>以 Canvas 2D 生成预览和下载结果，导出前显示尺寸与内存风险。</td><td>浏览器兼容性广，足以覆盖三种工具。</td><td>accepted</td></tr>
+            <tr><td>DEC-004</td><td>采用方向 2，并将右侧工作区拆为导入、图层、调整三个顶部菜单。</td><td>保留大画布，同时把对象选择与属性编辑的心智模型分开。</td><td>accepted</td></tr>
           </tbody>
         </table>
       </section>
@@ -89,21 +104,27 @@
             <tr><td>REQ-002 / REQ-008 / DEC-003</td><td>verified</td><td>浏览器实测图片文字弹窗、自由坐标、方向键微调、文本框宽度和长图预览；生产构建通过</td><td>无</td></tr>
             <tr><td>REQ-003</td><td>verified</td><td>浏览器实测方形裁切、长图中部插入与合成预览</td><td>无</td></tr>
             <tr><td>REQ-004</td><td>verified</td><td>4 / 6 / 9 几何单测；浏览器确认 4 图为 2×2 预览和下载顺序</td><td>浏览器首次批量下载时可能要求授权</td></tr>
-            <tr><td>REQ-005 / DEC-001</td><td>verified</td><td>桌面三栏与 390px 手机宽度浏览器检查；无横向溢出</td><td>无</td></tr>
-            <tr><td>REQ-006</td><td>verified</td><td>1280×720 浏览器测得三栏固定为 652px 高；中栏和右栏分别产生独立 scrollHeight，页面本身不滚动</td><td>无</td></tr>
-            <tr><td>REQ-007</td><td>verified</td><td>添加工具位于左栏固定区；`.sequence-scroll` 独占剩余高度并配置垂直滚动</td><td>无</td></tr>
+            <tr><td>REQ-005 / REQ-010 / DEC-004</td><td>verified</td><td>1440×900 桌面与 390×844 手机实现截图；简中和英语均无横向溢出</td><td>真实旅行照片最终内容验收</td></tr>
+            <tr><td>REQ-006</td><td>verified</td><td>桌面页面固定为视口高度；中央画布与右侧属性内容分别拥有滚动边界</td><td>无</td></tr>
+            <tr><td>REQ-007</td><td>superseded</td><td>方向 2 将添加、图层顺序与调整整合进右侧菜单</td><td>无</td></tr>
             <tr><td>REQ-009</td><td>verified</td><td>三份强类型语言文件覆盖工具、弹窗、状态、无障碍文案、页面元数据和下载文件名；语言本地持久化；12 项测试和生产构建通过</td><td>真实设备最终内容验收</td></tr>
+            <tr><td>REQ-011</td><td>verified</td><td>浏览器实测三菜单切换、图层选择、图片容器 100%→50% 后 Canvas 高度 398→199；预览与导出共享同一渲染函数</td><td>无</td></tr>
+            <tr><td>REQ-012</td><td>verified</td><td>浏览器实测 10° 旋转、虚线边框、20px 圆角和 42px 内边距；弹窗与完成后的 Canvas 预览均整体旋转</td><td>无</td></tr>
+            <tr><td>REQ-013</td><td>verified</td><td>1440×900 与 390×844 均显示三列资源格；无横向溢出</td><td>无</td></tr>
+            <tr><td>REQ-014</td><td>verified</td><td>浏览器创建双图横排、选择单个子图片、调整行高与间距并可拆分；图层列表仅底部保留新增动作</td><td>无</td></tr>
           </tbody>
         </table>
       </section>
 
       <section aria-labelledby="pending">
         <h2 id="pending">待确认</h2>
-        <div class="note"><strong>交付状态：</strong>核心功能、响应式布局、隐私说明、错误恢复、测试、生产构建与设计系统文档均已完成。用户可在真实旅行照片上进行最终内容验收。</div>
+        <div class="note"><strong>交付状态：</strong>方向 2、右侧 Adobe 式菜单和容器内部调整均已实现并完成桌面/手机自动化检查。用户可在真实旅行照片上进行最终内容验收。</div>
       </section>
 
       <section aria-labelledby="log">
         <h2 id="log">变更记录</h2>
+        <p><strong>2026-10-08</strong> — 修复图片文字底色未随文字旋转；新增内边距、边框类型/粗细/颜色和圆角。导入面板改为紧凑按钮与三列资源格；图层改为小圆角矩形，只在底部添加文字，并新增双图横排、独立裁切与拆分。16 项测试、生产构建与桌面/手机自动化验收通过。</p>
+        <p><strong>2026-10-08</strong> — 用户将视觉方向改为方向 2；实现青色工具轨、项目栏、中央画布与右侧专业工作区。右栏拆分为导入、图层、调整，新增图片容器高度、内部缩放与焦点位置控制；桌面、390px 手机、英语文案和 Canvas 联动验证通过。</p>
         <p><strong>2026-10-08</strong> — 接入简中、繁中与英语三语界面；文案集中到强类型语言文件；语言选择写入本地存储并同步页面语言和元数据；新增国际化单测，12 项测试与生产构建通过。</p>
         <p><strong>2026-10-07</strong> — 三栏改为独立滚动；左栏添加工具置顶、顺序列表单独滚动；图片文字改为支持拖动、键盘微调和自由坐标的弹窗编辑器。桌面与 390px 手机端验证通过，9 项测试通过。</p>
         <p><strong>2026-10-05</strong> — 完成长图、封面与切图工具；修正 4 图为 2×2 排列；7 项单元测试和生产构建通过；完成桌面与手机浏览器检查。</p>

@@ -4,6 +4,7 @@ import type {
   CropState,
   PhotoBlock,
   PhotoOverlay,
+  PhotoRowBlock,
   SourceImage,
   TextBlock,
 } from '../types'
@@ -114,21 +115,44 @@ function drawPhotoOverlay(
 ): void {
   const layout = resolvePhotoOverlayLayout(overlay)
   const boxWidth = width * layout.width
-  const textPadding = 28 * scale
+  const textPadding = (overlay.boxPadding ?? 28) * scale
   const style = overlay.italic ? 'italic' : 'normal'
   context.font = `${style} ${overlay.fontWeight} ${overlay.fontSize * scale}px ${overlay.fontFamily}`
   const lines = wrapText(context, overlay.text, Math.max(40, boxWidth - textPadding * 2))
   const lineHeight = overlay.fontSize * overlay.lineHeight * scale
-  const boxHeight = Math.max(92 * scale, lines.length * lineHeight + 40 * scale)
+  const boxHeight = Math.max(lineHeight + textPadding * 2, lines.length * lineHeight + textPadding * 2)
   const centerX = clamp(x + width * layout.x, x + boxWidth / 2, x + width - boxWidth / 2)
   const centerY = clamp(y + height * layout.y, y + boxHeight / 2, y + height - boxHeight / 2)
-  const boxX = centerX - boxWidth / 2
-  const boxY = centerY - boxHeight / 2
   context.save()
-  context.fillStyle = colorWithOpacity(overlay.background, overlay.backgroundOpacity ?? 58)
-  context.fillRect(boxX, boxY, boxWidth, boxHeight)
   context.translate(centerX, centerY)
   context.rotate((overlay.rotation * Math.PI) / 180)
+  roundedRectPath(
+    context,
+    -boxWidth / 2,
+    -boxHeight / 2,
+    boxWidth,
+    boxHeight,
+    (overlay.borderRadius ?? 0) * scale,
+  )
+  context.fillStyle = colorWithOpacity(overlay.background, overlay.backgroundOpacity ?? 58)
+  context.fill()
+  const borderWidth = (overlay.borderWidth ?? 2) * scale
+  const borderStyle = overlay.borderStyle ?? 'none'
+  if (borderStyle !== 'none' && borderWidth > 0) {
+    context.save()
+    context.lineWidth = borderWidth
+    context.strokeStyle = overlay.borderColor ?? '#ffffff'
+    context.lineCap = borderStyle === 'dotted' ? 'round' : 'butt'
+    context.setLineDash(
+      borderStyle === 'dashed'
+        ? [Math.max(4, borderWidth * 4), Math.max(3, borderWidth * 2.5)]
+        : borderStyle === 'dotted'
+          ? [0, Math.max(4, borderWidth * 3)]
+          : [],
+    )
+    context.stroke()
+    context.restore()
+  }
   context.font = `${style} ${overlay.fontWeight} ${overlay.fontSize * scale}px ${overlay.fontFamily}`
   context.textAlign = overlay.align
   context.textBaseline = 'middle'
@@ -137,6 +161,52 @@ function drawPhotoOverlay(
   const startY = -((lines.length - 1) * lineHeight) / 2
   lines.forEach((line, index) => context.fillText(line, textX, startY + index * lineHeight, boxWidth - textPadding * 2))
   context.restore()
+}
+
+function roundedRectPath(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+): void {
+  const r = clamp(radius, 0, Math.min(width, height) / 2)
+  context.beginPath()
+  context.moveTo(x + r, y)
+  context.lineTo(x + width - r, y)
+  context.quadraticCurveTo(x + width, y, x + width, y + r)
+  context.lineTo(x + width, y + height - r)
+  context.quadraticCurveTo(x + width, y + height, x + width - r, y + height)
+  context.lineTo(x + r, y + height)
+  context.quadraticCurveTo(x, y + height, x, y + height - r)
+  context.lineTo(x, y + r)
+  context.quadraticCurveTo(x, y, x + r, y)
+  context.closePath()
+}
+
+function rowHeight(block: PhotoRowBlock, width: number): number {
+  return width * ((block.heightRatio ?? 62) / 100)
+}
+
+async function drawPhotoFrame(
+  context: CanvasRenderingContext2D,
+  block: PhotoBlock,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  scale: number,
+): Promise<void> {
+  const loaded = await loadImage(block.blob)
+  const crop = computeCropRect(block.width, block.height, width / height, {
+    zoom: block.cropZoom ?? 1,
+    x: block.cropX ?? 0,
+    y: block.cropY ?? 0,
+  })
+  context.drawImage(loaded.source, crop.sx, crop.sy, crop.sw, crop.sh, x, y, width, height)
+  if (block.overlay) drawPhotoOverlay(context, block.overlay, x, y, width, height, scale)
+  loaded.close()
 }
 
 function colorWithOpacity(color: string, opacity: number): string {
@@ -168,7 +238,8 @@ export async function renderStitch(
   const innerWidth = requestedWidth - outerPadding * 2
   const gap = settings.gap * baseScale
   const heights = blocks.map((block) => {
-    if (block.type === 'photo') return innerWidth * (block.height / block.width)
+    if (block.type === 'photo') return innerWidth * (block.height / block.width) * ((block.frameHeight ?? 100) / 100)
+    if (block.type === 'photo-row') return rowHeight(block, innerWidth)
     return textMetrics(measureContext, block, innerWidth, baseScale).height
   })
   const rawHeight = outerPadding * 2 + heights.reduce((sum, height) => sum + height, 0) + Math.max(0, blocks.length - 1) * gap
@@ -189,11 +260,22 @@ export async function renderStitch(
   for (let index = 0; index < blocks.length; index += 1) {
     const block = blocks[index]
     if (block.type === 'photo') {
-      const loaded = await loadImage(block.blob)
-      const height = finalInnerWidth * (block.height / block.width)
-      context.drawImage(loaded.source, finalPadding, y, finalInnerWidth, height)
-      if (block.overlay) drawPhotoOverlay(context, block.overlay, finalPadding, y, finalInnerWidth, height, finalScale)
-      loaded.close()
+      const height = finalInnerWidth * (block.height / block.width) * ((block.frameHeight ?? 100) / 100)
+      await drawPhotoFrame(context, block, finalPadding, y, finalInnerWidth, height, finalScale)
+      y += height
+    } else if (block.type === 'photo-row') {
+      const height = rowHeight(block, finalInnerWidth)
+      const rowGap = (block.gap ?? settings.gap) * finalScale
+      const cellWidth = Math.max(1, (finalInnerWidth - rowGap) / 2)
+      await Promise.all(block.photos.map((photo, photoIndex) => drawPhotoFrame(
+        context,
+        photo,
+        finalPadding + photoIndex * (cellWidth + rowGap),
+        y,
+        cellWidth,
+        height,
+        finalScale,
+      )))
       y += height
     } else {
       const metrics = textMetrics(context, block, finalInnerWidth, finalScale)

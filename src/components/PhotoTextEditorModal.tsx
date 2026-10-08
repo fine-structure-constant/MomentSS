@@ -30,6 +30,10 @@ export function PhotoTextEditorModal({ photo, overlay, onChange, onClose, onRemo
   const draggingRef = useRef(false)
   const layout = resolvePhotoOverlayLayout(overlay)
   const opacity = overlay.backgroundOpacity ?? 58
+  const boxPadding = overlay.boxPadding ?? 28
+  const borderStyle = overlay.borderStyle ?? 'none'
+  const borderWidth = overlay.borderWidth ?? 2
+  const borderRadius = overlay.borderRadius ?? 0
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
@@ -112,6 +116,11 @@ export function PhotoTextEditorModal({ photo, overlay, onChange, onClose, onRemo
                   width: `${layout.width * 100}%`,
                   color: overlay.color,
                   background: withOpacity(overlay.background, opacity),
+                  padding: `${boxPadding / 10.8}cqw`,
+                  borderStyle,
+                  borderWidth: `${borderWidth / 10.8}cqw`,
+                  borderColor: overlay.borderColor ?? '#ffffff',
+                  borderRadius: `${borderRadius / 10.8}cqw`,
                   fontFamily: overlay.fontFamily,
                   fontSize: `${overlay.fontSize / 10}cqw`,
                   fontWeight: overlay.fontWeight,
@@ -134,6 +143,29 @@ export function PhotoTextEditorModal({ photo, overlay, onChange, onClose, onRemo
               <RangeField label={t('photoText.vertical')} value={Math.round(layout.y * 100)} min={6} max={94} suffix="%" onChange={(y) => updateLayout({ y: y / 100 })} />
               <RangeField label={t('photoText.width')} value={Math.round(layout.width * 100)} min={28} max={94} suffix="%" onChange={(width) => updateLayout({ width: width / 100 })} />
               <RangeField label={t('photoText.opacity')} value={opacity} min={0} max={100} suffix="%" onChange={(backgroundOpacity) => onChange({ ...overlay, backgroundOpacity })} />
+            </div>
+            <div className="photo-position-group">
+              <h3>{t('photoText.container')}</h3>
+              <RangeField label={t('photoText.padding')} value={boxPadding} min={0} max={72} suffix="px" onChange={(nextPadding) => onChange({ ...overlay, boxPadding: nextPadding })} />
+              <label className="field">
+                <span className="field__label">{t('photoText.borderStyle')}</span>
+                <select value={borderStyle} onChange={(event) => onChange({ ...overlay, borderStyle: event.currentTarget.value as PhotoOverlay['borderStyle'] })}>
+                  <option value="none">{t('photoText.borderNone')}</option>
+                  <option value="solid">{t('photoText.borderSolid')}</option>
+                  <option value="dashed">{t('photoText.borderDashed')}</option>
+                  <option value="dotted">{t('photoText.borderDotted')}</option>
+                </select>
+              </label>
+              {borderStyle !== 'none' && (
+                <>
+                  <RangeField label={t('photoText.borderWidth')} value={borderWidth} min={1} max={12} suffix="px" onChange={(nextBorderWidth) => onChange({ ...overlay, borderWidth: nextBorderWidth })} />
+                  <label className="field color-field">
+                    <span className="field__label">{t('photoText.borderColor')}</span>
+                    <input type="color" value={overlay.borderColor ?? '#ffffff'} onChange={(event) => onChange({ ...overlay, borderColor: event.currentTarget.value })} />
+                  </label>
+                </>
+              )}
+              <RangeField label={t('photoText.radius')} value={borderRadius} min={0} max={64} suffix="px" onChange={(nextRadius) => onChange({ ...overlay, borderRadius: nextRadius })} />
             </div>
           </aside>
         </div>

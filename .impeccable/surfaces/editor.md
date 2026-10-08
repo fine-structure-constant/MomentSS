@@ -6,19 +6,19 @@
 - Visitor mode: Operate
 - Audience: travelers preparing image posts on phone or desktop
 - Job: compose, preview, and export without uploading personal images
-- Approved comp: `.impeccable/mocks/editor-approved.png`
+- Approved reference: `design/src/previews/editor-direction-2.png`
 
 ## Direction contract
 
-**THESIS:** A sunlit photo worktable that makes sequence, canvas, and adjustment visible at once. It refuses both the generic upload-dashboard card grid and the decorative scrapbook that hides practical controls.
+**THESIS:** A seaside print studio with a cyan tool rail, a dominant warm canvas, and a professional white property workspace. It borrows Adobe's tool–canvas–properties clarity without inheriting desktop-suite complexity.
 
-**OWN-WORLD:** Warm white is the working light; ink navy carries type; apricot coral marks the primary action and exact center; pool blue carries selection and privacy state; pale citrus is reserved for gentle guidance. Rectangular photo edges, precise dividers, 14px control corners, soft offset depth, and dense-but-calm editing panels form the component language.
+**OWN-WORLD:** Cyan owns the global tool rail, deep navy owns selection and primary action, warm gray owns the canvas, and white owns properties. Rectangular imagery, precise dividers, 8–10px controls, and one soft canvas shadow form the component language.
 
 **STORY:** The user sees that images stay local, chooses one of three jobs, adds source images, works directly against a large result preview, and downloads a social-ready output. Empty, loading, saved, error, and memory-limit states explain recovery in plain Chinese.
 
-**FIRST VIEWPORT:** A compact top bar holds the wordmark, three tool tabs, local-only status, and the primary download action. Below, the desktop editor uses an order column, a dominant tall canvas, and an inspector. On mobile, the canvas leads, current controls follow, and order becomes a full-width tray. The square midpoint aperture is the single signature move.
+**FIRST VIEWPORT:** A cyan vertical rail holds the three global tools, a slim top bar names the current workspace and local state, a dominant canvas fills the center, and a right property workspace switches between Import, Layers, and Adjust. On mobile, the rail becomes bottom navigation and the canvas still leads.
 
-**FORM:** Approved direction 1, ranked first for task clarity. Manual degraded seed key `degraded-manual-2026-10-05-direction-1`; the Impeccable engine could not be downloaded, so the installed skill text and approved comp are the design authorities.
+**FORM:** Direction 2 was explicitly selected by the user on 2026-10-08 and supersedes direction 1. The supplied preview is the visual authority.
 
 **FINISH:** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
@@ -27,11 +27,11 @@
 - WeChat thumbnail behavior is represented as a center-square approximation and must be labeled as such.
 - Browser canvas limits vary; export must scale down safely and report when it does.
 
-## Finish review
+## Historical finish review — superseded
 
 The Impeccable engine binary and automated comp-diff detector were unavailable, so the installed skill's degraded finish-review role was performed inline against the approved comp, live desktop render, 390px mobile render, product truth, and implementation source.
 
-- **disposition:** ship
+- **disposition:** superseded by direction 2 on 2026-10-08
 - **persistence:** pass — `PRODUCT.md`, the approved comp and approval sidecar, this surface brief, `DESIGN.md`, and `.impeccable/design.json` exist.
 - **fidelity:** faithful — three-zone workbench, dominant result canvas, warm ground, ink type, coral action, pool-blue state, precise dividers, and center-square geometry are retained. Placing export inside each tool's contextual action panel is an acceptable responsive adaptation of the comp's header action because it remains visible beside the output settings and becomes sticky in the mobile long-image flow.
 - **ceiling:** reached — native devices include the rectangular photo canvas, square aperture/grid, flat editing panels, restrained ambient depth, designed Chinese hierarchy, and short state motion with reduced-motion support.
@@ -51,3 +51,19 @@ The Impeccable engine binary and automated comp-diff detector were unavailable, 
 - A compact header selector persists the chosen locale in browser storage and updates the document language, title, and description.
 - Copy lives in three typed locale files. Existing draft text remains user content; only newly created text blocks use the active language default.
 - Mobile controls retain 16px input text, and flexible labels accommodate longer English copy. Localization and interpolation tests: 3 added, 12 total passed. Production build: passed.
+
+## Direction 2 redesign verification — 2026-10-08
+
+- Desktop now uses an 86px cyan global tool rail, 72px project bar, central warm canvas, and 392px white property workspace.
+- The right workspace has fixed Import, Layers, and Adjust tabs plus a fixed save/export footer. Object properties and canvas properties remain separately grouped.
+- Photo containers now support frame height, internal zoom, and horizontal/vertical focal position; the same Canvas renderer drives preview and export.
+- At 1440×900 the document has no page overflow; the canvas and property workspace own scrolling. At 390×844 the rail becomes bottom navigation and horizontal overflow remains zero in Simplified Chinese and English.
+- Automated browser evidence: switching the photo frame from 100% to 50% changed rendered canvas height from 398px to 199px. Tests: 12 passed. Production build: passed.
+
+## Container and layer refinement — 2026-10-08
+
+- Photo text now renders text, background, padding, border, and radius inside one rotated geometry in both the visual editor and Canvas export. Browser evidence verified a 10° transform with dashed border, 20px radius, and 42px padding.
+- Import actions are compact; imported photos and text containers appear in a three-column asset grid on desktop and 390px mobile.
+- Layer rows use compact 3px corners. Repeated between-layer text actions were removed; text and two-photo-row actions live once at the bottom.
+- Adjacent photos can be grouped into one two-column row, adjusted independently, given row height and gap values, and split back into vertical layers.
+- Desktop canvas and property content both report independent `overflow: auto`; 1440×900 and 390×844 have no horizontal overflow. Tests: 16 passed. Production build: passed.
