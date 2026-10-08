@@ -5,6 +5,7 @@ import { clamp, resolvePhotoOverlayLayout } from '../lib/geometry'
 import type { PhotoBlock, PhotoOverlay } from '../types'
 import { RangeField } from './Fields'
 import { TextControls } from './TextControls'
+import { useI18n } from '../i18n'
 
 interface PhotoTextEditorModalProps {
   photo: PhotoBlock
@@ -22,6 +23,7 @@ function withOpacity(color: string, opacity: number): string {
 }
 
 export function PhotoTextEditorModal({ photo, overlay, onChange, onClose, onRemove }: PhotoTextEditorModalProps) {
+  const { t } = useI18n()
   const imageUrl = useObjectUrl(photo.blob)
   const previewRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -76,8 +78,8 @@ export function PhotoTextEditorModal({ photo, overlay, onChange, onClose, onRemo
     }}>
       <section className="photo-text-modal" role="dialog" aria-modal="true" aria-labelledby="photo-text-title">
         <header className="photo-text-modal__header">
-          <div><h2 id="photo-text-title">在图片上编辑文字</h2><p><Move size={14} /> 拖动文本框到任意位置，方向键可精细调整</p></div>
-          <button ref={closeRef} type="button" className="icon-button" onClick={onClose} aria-label="关闭图片文字编辑器"><X size={19} /></button>
+          <div><h2 id="photo-text-title">{t('photoText.title')}</h2><p><Move size={14} /> {t('photoText.hint')}</p></div>
+          <button ref={closeRef} type="button" className="icon-button" onClick={onClose} aria-label={t('photoText.close')}><X size={19} /></button>
         </header>
 
         <div className="photo-text-modal__body">
@@ -92,7 +94,7 @@ export function PhotoTextEditorModal({ photo, overlay, onChange, onClose, onRemo
                 className="photo-text-box"
                 role="button"
                 tabIndex={0}
-                aria-label="可拖动的图片文字框"
+                aria-label={t('photoText.draggable')}
                 onKeyDown={nudge}
                 onPointerDown={(event) => {
                   draggingRef.current = true
@@ -119,26 +121,26 @@ export function PhotoTextEditorModal({ photo, overlay, onChange, onClose, onRemo
                   transform: `translate(-50%, -50%) rotate(${overlay.rotation}deg)`,
                 }}
               >
-                {overlay.text || '输入文字'}
+                {overlay.text || t('text.emptyOverlay')}
               </div>
             </div>
           </div>
 
-          <aside className="photo-text-controls" aria-label="图片文字设置">
+          <aside className="photo-text-controls" aria-label={t('photoText.settings')}>
             <TextControls value={overlay} onChange={(patch) => onChange({ ...overlay, ...patch })} />
             <div className="photo-position-group">
-              <h3>画面位置</h3>
-              <RangeField label="左右" value={Math.round(layout.x * 100)} min={Math.round(layout.width * 50)} max={Math.round(100 - layout.width * 50)} suffix="%" onChange={(x) => updateLayout({ x: x / 100 })} />
-              <RangeField label="上下" value={Math.round(layout.y * 100)} min={6} max={94} suffix="%" onChange={(y) => updateLayout({ y: y / 100 })} />
-              <RangeField label="文本框宽度" value={Math.round(layout.width * 100)} min={28} max={94} suffix="%" onChange={(width) => updateLayout({ width: width / 100 })} />
-              <RangeField label="底色透明度" value={opacity} min={0} max={100} suffix="%" onChange={(backgroundOpacity) => onChange({ ...overlay, backgroundOpacity })} />
+              <h3>{t('photoText.position')}</h3>
+              <RangeField label={t('photoText.horizontal')} value={Math.round(layout.x * 100)} min={Math.round(layout.width * 50)} max={Math.round(100 - layout.width * 50)} suffix="%" onChange={(x) => updateLayout({ x: x / 100 })} />
+              <RangeField label={t('photoText.vertical')} value={Math.round(layout.y * 100)} min={6} max={94} suffix="%" onChange={(y) => updateLayout({ y: y / 100 })} />
+              <RangeField label={t('photoText.width')} value={Math.round(layout.width * 100)} min={28} max={94} suffix="%" onChange={(width) => updateLayout({ width: width / 100 })} />
+              <RangeField label={t('photoText.opacity')} value={opacity} min={0} max={100} suffix="%" onChange={(backgroundOpacity) => onChange({ ...overlay, backgroundOpacity })} />
             </div>
           </aside>
         </div>
 
         <footer className="photo-text-modal__footer">
-          <button type="button" className="danger-button" onClick={onRemove}><Trash2 size={17} /> 移除图片文字</button>
-          <button type="button" className="primary-button" onClick={onClose}><Check size={18} /> 完成</button>
+          <button type="button" className="danger-button" onClick={onRemove}><Trash2 size={17} /> {t('photoText.remove')}</button>
+          <button type="button" className="primary-button" onClick={onClose}><Check size={18} /> {t('common.done')}</button>
         </footer>
       </section>
     </div>

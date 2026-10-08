@@ -1,5 +1,6 @@
 import { ImagePlus, LockKeyhole } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { useI18n } from '../i18n'
 
 interface UploadDropzoneProps {
   onFiles: (files: File[]) => void | Promise<void>
@@ -12,8 +13,9 @@ export function UploadDropzone({
   onFiles,
   multiple = false,
   compact = false,
-  label = '拖入照片，或选择文件',
+  label,
 }: UploadDropzoneProps) {
+  const { t } = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
 
@@ -49,12 +51,12 @@ export function UploadDropzone({
       <ImagePlus aria-hidden="true" size={compact ? 20 : 28} strokeWidth={1.8} />
       <div>
         <button type="button" className="dropzone__button" onClick={() => inputRef.current?.click()}>
-          {label}
+          {label ?? t('upload.default')}
         </button>
-        {!compact && <p>支持 JPG、PNG、WebP、AVIF</p>}
+        {!compact && <p>{t('upload.formats')}</p>}
       </div>
       {!compact && (
-        <span className="privacy-line"><LockKeyhole aria-hidden="true" size={14} /> 图片不会离开此设备</span>
+        <span className="privacy-line"><LockKeyhole aria-hidden="true" size={14} /> {t('upload.private')}</span>
       )}
     </div>
   )

@@ -44,3 +44,10 @@ The Impeccable engine binary and automated comp-diff detector were unavailable, 
 - The left add controls remain above a dedicated sequence-list scroller.
 - Photo text opens in a protected-focus editor with a real image preview, draggable normalized coordinates, keyboard nudging, width controls, and matching Canvas export geometry.
 - Verified at 1280×720 and 390×844; no horizontal overflow or browser console errors. Geometry tests: 9 passed. Production build: passed.
+
+## Internationalization — 2026-10-08
+
+- The complete interface, including tool states, modals, errors, accessibility labels, metadata, and download filenames, is available in Simplified Chinese, Traditional Chinese, and English.
+- A compact header selector persists the chosen locale in browser storage and updates the document language, title, and description.
+- Copy lives in three typed locale files. Existing draft text remains user content; only newly created text blocks use the active language default.
+- Mobile controls retain 16px input text, and flexible labels accommodate longer English copy. Localization and interpolation tests: 3 added, 12 total passed. Production build: passed.

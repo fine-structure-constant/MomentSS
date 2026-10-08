@@ -38,6 +38,7 @@ One private, browser-local workspace combines three jobs that are usually fragme
 - Import an existing long image, guide the user to crop a square cover, and insert that square into the vertical center so the center-square thumbnail is intentional.
 - Crop one image into 4, 6, or 9 downloadable tiles in social-post reading order.
 - Store projects locally. Images must not be uploaded to an application server.
+- Offer Simplified Chinese, Traditional Chinese, and English interfaces, with editable copy centralized by locale and the choice persisted locally.
 - Handle large-image memory limits with clear recovery guidance rather than silently failing.
 - Exact WeChat thumbnail behavior may vary by client version; the product presents a center-square preview as the working model, not as a guarantee about an external platform.
 
@@ -46,6 +47,7 @@ One private, browser-local workspace combines three jobs that are usually fragme
 - Bright, clean, Instagram-referenced visual tone.
 - Typography should feel designed rather than like a default utility interface.
 - Working product name is “留白拼图” until the user supplies a final name.
+- The English interface uses “Liubai Collage” as the readable product rendering; it does not introduce a separate brand.
 
 ## Evidence on Hand
 
