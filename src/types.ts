@@ -33,6 +33,7 @@ export interface PhotoOverlay extends TextAppearance {
 
 export interface PhotoBlock {
   id: string
+  sourceId?: string
   type: 'photo'
   name: string
   blob: Blob
@@ -59,11 +60,14 @@ export interface PhotoRowBlock {
 
 export interface TextBlock extends TextAppearance {
   id: string
+  sourceId?: string
   type: 'text'
   padding: number
 }
 
 export type ComposerBlock = PhotoBlock | PhotoRowBlock | TextBlock
+
+export type ImportedAsset = PhotoBlock | TextBlock
 
 export interface ComposerSettings {
   width: number
@@ -91,4 +95,27 @@ export interface StitchDraft {
   blocks: ComposerBlock[]
   settings: ComposerSettings
   updatedAt: number
+}
+
+export interface CoverRecipe {
+  photo: PhotoBlock
+  crop: CropState
+  /** Insertion boundary between complete layers, from 0 through blocks.length. */
+  insertAt: number
+  spacing: number
+  background: string
+}
+
+/** Independent editable snapshot; deleting source assets never changes a saved composition. */
+export interface SavedComposition {
+  id: string
+  name: string
+  kind: 'collage' | 'cover'
+  blocks: ComposerBlock[]
+  settings: ComposerSettings
+  cover?: CoverRecipe
+  createdAt: number
+  width: number
+  height: number
+  thumbnail: Blob
 }

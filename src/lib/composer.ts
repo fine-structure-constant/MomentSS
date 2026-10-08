@@ -21,7 +21,7 @@ export function findComposerAsset(blocks: ComposerBlock[], id: string | null): C
 
 export function findPhotoRow(blocks: ComposerBlock[], photoId: string | null): PhotoRowBlock | null {
   if (!photoId) return null
-  return blocks.find((block): block is PhotoRowBlock => block.type === 'photo-row' && block.photos.some((photo) => photo.id === photoId)) ?? null
+  return blocks.find((block): block is PhotoRowBlock => block.type === 'photo-row' && (block.id === photoId || block.photos.some((photo) => photo.id === photoId))) ?? null
 }
 
 export function updatePhotoInBlocks(

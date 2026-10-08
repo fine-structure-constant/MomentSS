@@ -1,6 +1,7 @@
 import { ImagePlus, LockKeyhole } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useI18n } from '../i18n'
+import { IMAGE_ACCEPT } from '../lib/imageImport'
 
 interface UploadDropzoneProps {
   onFiles: (files: File[]) => void | Promise<void>
@@ -18,16 +19,23 @@ export function UploadDropzone({
   const { t } = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
+  const [reading, setReading] = useState(false)
 
-  const commitFiles = (list: FileList | null) => {
-    if (!list?.length) return
-    void onFiles(Array.from(list))
-    if (inputRef.current) inputRef.current.value = ''
+  const commitFiles = async (list: FileList | null) => {
+    if (!list?.length || reading) return
+    setReading(true)
+    try {
+      await onFiles(Array.from(list))
+    } finally {
+      if (inputRef.current) inputRef.current.value = ''
+      setReading(false)
+    }
   }
 
   return (
     <div
       className={`dropzone ${compact ? 'dropzone--compact' : ''} ${dragging ? 'is-dragging' : ''}`}
+      aria-busy={reading}
       onDragEnter={(event) => {
         event.preventDefault()
         setDragging(true)
@@ -37,21 +45,22 @@ export function UploadDropzone({
       onDrop={(event) => {
         event.preventDefault()
         setDragging(false)
-        commitFiles(event.dataTransfer.files)
+        void commitFiles(event.dataTransfer.files)
       }}
     >
       <input
         ref={inputRef}
         className="visually-hidden"
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/avif,image/svg+xml"
+        accept={IMAGE_ACCEPT}
+        disabled={reading}
         multiple={multiple}
-        onChange={(event) => commitFiles(event.currentTarget.files)}
+        onChange={(event) => void commitFiles(event.currentTarget.files)}
       />
       <ImagePlus aria-hidden="true" size={compact ? 20 : 28} strokeWidth={1.8} />
       <div>
-        <button type="button" className="dropzone__button" onClick={() => inputRef.current?.click()}>
-          {label ?? t('upload.default')}
+        <button type="button" className="dropzone__button" disabled={reading} onClick={() => inputRef.current?.click()}>
+          {reading ? t('upload.reading') : label ?? t('upload.default')}
         </button>
         {!compact && <p>{t('upload.formats')}</p>}
       </div>
