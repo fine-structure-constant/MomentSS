@@ -46,6 +46,26 @@ export function gridDimensions(count: 4 | 6 | 9): { columns: number; rows: numbe
   return { columns: 3, rows: 3 }
 }
 
+/**
+ * A focus slider can only move when the cropped window is smaller than the source.
+ * At the minimum zoom one axis is usually already flush, so the UI must disable it
+ * instead of offering a control that silently does nothing.
+ */
+export function cropPanRoom(
+  sourceWidth: number,
+  sourceHeight: number,
+  targetAspect: number,
+  crop: CropState,
+): { x: boolean; y: boolean } {
+  const rect = computeCropRect(sourceWidth, sourceHeight, targetAspect, crop)
+  return { x: sourceWidth - rect.sw > 0.5, y: sourceHeight - rect.sh > 0.5 }
+}
+
+/** Aspect ratio of the frame a standalone photo gets at the default container height. */
+export function photoFrameAspect(photo: { width: number; height: number; frameHeight?: number }): number {
+  return (photo.width / photo.height) * (100 / (photo.frameHeight ?? 100))
+}
+
 export interface PhotoOverlayLayout {
   x: number
   y: number

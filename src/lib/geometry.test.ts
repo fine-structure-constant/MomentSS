@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeCropRect, fitCanvasSize, gridDimensions, resolvePhotoOverlayLayout } from './geometry'
+import { computeCropRect, cropPanRoom, fitCanvasSize, gridDimensions, photoFrameAspect, resolvePhotoOverlayLayout } from './geometry'
 
 describe('computeCropRect', () => {
   it('centers a square inside a landscape source', () => {
@@ -52,5 +52,27 @@ describe('resolvePhotoOverlayLayout', () => {
       y: 0.94,
       width: 0.8,
     })
+  })
+})
+
+describe('cropPanRoom', () => {
+  it('reports the axis that is already flush at the minimum zoom', () => {
+    expect(cropPanRoom(1600, 900, 1, { zoom: 1, x: 0, y: 0 })).toEqual({ x: true, y: false })
+    expect(cropPanRoom(900, 1600, 1, { zoom: 1, x: 0, y: 0 })).toEqual({ x: false, y: true })
+  })
+
+  it('reports no room at all when the source already matches the frame', () => {
+    expect(cropPanRoom(1000, 1000, 1, { zoom: 1, x: 0, y: 0 })).toEqual({ x: false, y: false })
+  })
+
+  it('opens both axes once the crop is zoomed in', () => {
+    expect(cropPanRoom(1600, 900, 1, { zoom: 2, x: 0, y: 0 })).toEqual({ x: true, y: true })
+  })
+})
+
+describe('photoFrameAspect', () => {
+  it('narrows the frame as the container height shrinks', () => {
+    expect(photoFrameAspect({ width: 1200, height: 800 })).toBeCloseTo(1.5)
+    expect(photoFrameAspect({ width: 1200, height: 800, frameHeight: 150 })).toBeCloseTo(1)
   })
 })

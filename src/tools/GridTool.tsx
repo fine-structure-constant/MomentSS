@@ -79,7 +79,7 @@ export function GridTool({ onToast }: GridToolProps) {
       <aside className="grid-actions">
         <div className="panel-heading"><div><h2>{t('grid.layoutTitle')}</h2><p>{t('grid.layoutHint')}</p></div><Rows3 size={20} /></div>
         <div className="count-picker count-picker--vertical" aria-label={t('grid.countAria')}>
-          {([4, 6, 9] as const).map((value) => <button type="button" key={value} className={count === value ? 'is-active' : ''} onClick={() => { setCount(value); setCrop(DEFAULT_CROP) }}><strong>{t('grid.images', { count: value })}</strong><span>{t(`grid.layout${value}` as 'grid.layout4' | 'grid.layout6' | 'grid.layout9')}</span></button>)}
+          {([4, 6, 9] as const).map((value) => <button type="button" key={value} className={count === value ? 'is-active' : ''} onClick={() => setCount(value)}><strong>{t('grid.images', { count: value })}</strong><span>{t(`grid.layout${value}` as 'grid.layout4' | 'grid.layout6' | 'grid.layout9')}</span></button>)}
         </div>
         <div className={`order-sample order-sample--${dimensions.columns}`} aria-label={t('grid.orderAria')}>
           {Array.from({ length: count }, (_, index) => <span key={index}>{index + 1}</span>)}

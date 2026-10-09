@@ -26,7 +26,7 @@ function App() {
 
   useEffect(() => {
     if (!toast) return
-    const timer = window.setTimeout(() => setToast(null), 4200)
+    const timer = window.setTimeout(() => setToast(null), toast.action ? 9000 : 4200)
     return () => window.clearTimeout(timer)
   }, [toast])
 
@@ -84,7 +84,7 @@ function App() {
         </>}
       </div>
 
-      <StatusToast message={toast} />
+      <StatusToast message={toast} onDismiss={() => setToast(null)} />
     </div>
   )
 }
