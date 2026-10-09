@@ -27,7 +27,7 @@ describe('shared structured collage layout', () => {
     expect(right.crop.sw).toBeCloseTo(left.crop.sw / 2)
   })
 
-  it('wraps by Unicode code points and preserves empty paragraphs', () => {
+  it('wraps by Unicode graphemes and preserves empty paragraphs', () => {
     const text = { ...createTextBlock(''), fontSize: 10 }
     expect(wrapLayoutText('海🌊边\n\n旅行', 20, text, measure)).toEqual(['海🌊', '边', '', '旅行'])
   })

@@ -14,8 +14,8 @@
         <div class="meta" aria-label="项目快照">
           <span class="tag">阶段：已实现并验证</span>
           <span class="tag">平台：响应式 Web</span>
-          <span class="tag">更新：2026-10-08</span>
-          <span class="tag">验证基线：dev / c9474fb，加本次未提交修改</span>
+          <span class="tag">更新：2026-10-09</span>
+          <span class="tag">验证基线：dev / 47afe5c，加本次未提交修改</span>
         </div>
       </div>
     </header>
@@ -58,6 +58,7 @@
             <tr><td>REQ-020</td><td>导入栏目改为资源，统一添加、查看与 PNG / JPG 导出；排版长图保存为独立结构化资源，清空草稿保留。</td><td>accepted · verified</td></tr>
             <tr><td>REQ-021</td><td>封面选择已保存的长图与单图，在完整图层边界插入封面并参数化增加留白；结果保存到资源，再从资源下载。</td><td>accepted · verified</td></tr>
             <tr><td>REQ-022</td><td>图片文字弹窗中连续输入时保持文本框焦点和光标；属性更新不重新聚焦右上关闭按钮，Escape 仍可关闭。</td><td>accepted · verified</td></tr>
+            <tr><td>REQ-023</td><td>文字模块增加 emoji 输入；用户授权具体实现。文字卡片与图片文字共享选择器，按光标位置插入并随文字保存和导出。</td><td>accepted · verified</td></tr>
           </tbody>
         </table>
       </section>
@@ -81,6 +82,8 @@
         </div>
         <h3>实现截图</h3>
         <div class="gallery">
+          <figure class="direction"><img src="src/previews/editor-emoji-desktop.png" alt="文字内容框旁的 Emoji 分类选择器和带组合表情的长图预览"><figcaption><span class="label">Implementation capture</span><h3>文字 Emoji 输入</h3><p>1440×900；分类、搜索与最近使用内联展开，组合表情完整显示在文字卡片预览。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-emoji-mobile.png" alt="390像素图片文字编辑器中的 Emoji 选择器"><figcaption><span class="label">Implementation capture</span><h3>手机图片文字 Emoji</h3><p>390×844；44px 表情按钮、独立结果滚动和固定完成栏。图片为示例测试 SVG，emoji 由本机字体显示。</p></figcaption></figure>
           <figure class="direction"><img src="src/previews/editor-unified-resources.png" alt="资源栏中的三列导入资源、PNG和JPG按钮及已保存长图"><figcaption><span class="label">Implementation capture</span><h3>统一资源与导出</h3><p>1440×900；资源可直接查看和导出，长图底部为保存动作。素材为本地测试 SVG。</p></figcaption></figure>
           <figure class="direction"><img src="src/previews/editor-parametric-cover.png" alt="从已保存长图和单图生成封面，完整图层与留白参数可见"><figcaption><span class="label">Implementation capture</span><h3>结构化封面组合</h3><p>1440×900；插入位置、周围留白、取景和背景可调整，原图层完整保留。测试封面为纯色 SVG。</p></figcaption></figure>
           <figure class="direction"><img src="src/previews/editor-parametric-cover-mobile.png" alt="手机封面界面的局部放大与底部导航"><figcaption><span class="label">Implementation capture</span><h3>手机封面查看</h3><p>390×844；先选择资源，再查看长图或局部封面；已验证放大后自动滚动与英语无横向溢出。</p></figcaption></figure>
@@ -111,6 +114,7 @@
             <tr><td>DEC-004</td><td>采用方向 2，并将右侧工作区拆为资源、图层、调整三个顶部菜单。</td><td>保留大画布，同时把资源、对象选择与属性编辑的心智模型分开。</td><td>accepted · updated</td></tr>
             <tr><td>DEC-005</td><td>附件删除只影响资源库，画布内容保留；点击资源可以重新添加独立图层。</td><td>区分资源与图层生命周期，避免误删已排版内容。</td><td>proposed · implemented as routine detail</td></tr>
             <tr><td>DEC-006</td><td>长图和封面保存独立结构化快照；封面配方保留单图版本、完整图层、取景、插入边界与留白参数。</td><td>实现 REQ-020 / 021 的先保存后导出流程，删除素材不会破坏已保存结果，封面无需切开原图。</td><td>accepted · verified</td></tr>
+            <tr><td>DEC-007</td><td>在文字框旁提供可展开的 Emoji 面板，含分类、中英搜索与最近使用；插入后回到文字框。使用内置 Unicode 表情清单，共享排版按字素换行。</td><td>常用表情可直接找到，不增加网络依赖；内联展开避免属性栏和图片文字弹窗裁切浮层；原生表情显示遵循设备字体。</td><td>agent implementation choice · verified</td></tr>
           </tbody>
         </table>
       </section>
@@ -140,17 +144,19 @@
             <tr><td>REQ-020 / DEC-006</td><td>verified</td><td>39 项单测与生产构建通过；20 个生产浏览器场景覆盖资源查看、PNG / JPG 下载、文字格式、独立快照、刷新、继续排版、清草稿、删除素材与长图、HEIC 资源导出及存储读取失败；无页面错误。</td><td>仅当前浏览器持久化；清除站点数据会移除资源</td></tr>
             <tr><td>REQ-021 / DEC-006</td><td>verified</td><td>完整图层边界与居中几何 5 项新增单测；浏览器验证插入位置、留白、封面参数恢复、原素材删除后的独立导出。实际 PNG 为 1080×2421，中心方形内 15 个采样点均为指定封面颜色；桌面、390px 手机及英语检查通过。</td><td>真实手机触屏和微信客户端缩略图行为仍待设备验收</td></tr>
             <tr><td>REQ-022</td><td>verified</td><td>修复前浏览器复现首个字符令关闭按钮获得焦点。PhotoTextEditorModal.tsx 将仅打开时的焦点初始化与 Escape 监听分离；Edge 开发预览在 1440px / 390px 验证逐键输入、中文插入、模拟 composition 事件、光标中间插入、连续滑杆和文字框方向键、Escape、重开、刷新与资源文字持久化；无页面错误，生产构建通过。</td><td>自动化模拟浏览器 composition 事件，未控制真实系统输入法</td></tr>
+            <tr><td>REQ-023 / DEC-007</td><td>verified</td><td>44 项单测及生产构建通过；新增 5 项测试覆盖 UTF-16 光标插入、选区替换、组合字素保护、共享换行和跨语言搜索。10 个 Edge 开发浏览器场景验证插入后继续输入、分类与空搜索、最近使用刷新、真实 IndexedDB、图片文字焦点回归、Escape、三语、390px 控件与无溢出；实际 PNG 检出 2965 个红色表情像素，无页面错误。</td><td>常用清单不覆盖 Unicode 全集，其他表情可粘贴或系统输入；设备字体决定外观，真实手机软键盘仍待设备验收</td></tr>
           </tbody>
         </table>
       </section>
 
       <section aria-labelledby="pending">
         <h2 id="pending">待确认</h2>
-        <div class="note"><strong>交付状态：</strong>资源统一添加、查看和 PNG / JPG 导出；长图与封面保存独立结构化快照。封面选择已保存长图和单图，在完整图层边界插入并自动平衡留白。39 项单测、生产构建与本次 20 个生产浏览器场景通过，实际导出中心方形已检查。真实手机触屏、微信缩略图行为和用户 iPhone 原图仍可进行设备与内容验收。</div>
+        <div class="note"><strong>交付状态：</strong>资源统一查看和导出，长图与封面保存独立结构化快照；封面按完整图层组合并平衡留白。文字新增 Emoji 分类、搜索、最近使用及光标插入。当前 44 项单测、生产构建和 Emoji 的 10 个开发浏览器场景通过；先前 20 个资源/封面生产浏览器场景保留为已验证证据。真实手机软键盘与触屏、微信缩略图和用户 iPhone 原图仍可进行设备与内容验收。</div>
       </section>
 
       <section aria-labelledby="log">
         <h2 id="log">变更记录</h2>
+        <p><strong>2026-10-09</strong> — 文字卡片与图片文字共享 Emoji 选择器：内置五类常用表情，支持中英搜索、最近使用、光标插入和选区替换，插入后恢复焦点。Emoji 以文字保存，预览和导出按字素换行，避免拆开组合序列；不增加依赖或网络请求。44 项单测、生产构建和 10 个开发浏览器场景通过，桌面与手机截图已检查，实际 PNG 彩色表情已核对。</p>
         <p><strong>2026-10-08</strong> — 修复图片文字输入失焦：父组件每次编辑生成新的 onClose，导致带焦点初始化的 effect 重跑。初始化改为仅挂载时执行，Escape 监听单独跟随回调更新。桌面和手机浏览器连续输入、光标、属性键盘调节及保存恢复验证通过；生产构建通过。</p>
         <p><strong>2026-10-08</strong> — 按用户新要求将导入升级为资源，增加结构化查看与 PNG / JPG 直接导出；长图下载改为保存独立快照。重写封面为已保存长图加单图，在完整图层之间插入正方形并参数化留白，结果保存到资源后下载；原素材删除后仍可导出与调整。新增共享 coverLayout.ts、资源库 hook 与快照记录，修复查看弹窗 Escape 和手机聚焦滚动。39 项单测、生产构建、20 个生产浏览器场景通过；检查桌面与手机截图及实际导出中心像素。</p>
         <p><strong>2026-10-08</strong> — 增加共享 imageImport.ts，用 heic-to 1.6.5 的 CSP 构建按需解码 HEIC / HEIF / HIF，浏览器本地转换为 PNG 后进入三个工具的统一预览、编辑与导出流程。文件选择器增加扩展名和 MIME，缺失类型时检查文件头并避免将 AVIF 误判为 HEIF；上传显示读取状态。34 项单测与生产构建通过，官方 HEIC 样本的 12 个浏览器场景通过；许可证与源码链接随静态产物提供。</p>

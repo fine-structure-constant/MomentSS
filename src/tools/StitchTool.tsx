@@ -413,7 +413,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
 
                 {selected?.type === 'text' && (
                   <FieldGroup title={t('stitch.textStyle')} actions={<button type="button" className="danger-text" onClick={() => removeAsset(selected.id)}>{t('common.delete')}</button>}>
-                    <TextControls value={selected} onChange={updateSelectedText} />
+                    <TextControls key={selected.id} value={selected} onChange={updateSelectedText} />
                     <RangeField label={t('stitch.verticalPadding')} value={selected.padding} min={24} max={160} suffix="px" onChange={(padding) => updateSelectedText({ padding })} />
                   </FieldGroup>
                 )}

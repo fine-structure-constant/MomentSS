@@ -1,7 +1,10 @@
-import { AlignCenter, AlignLeft, AlignRight, Bold, Italic } from 'lucide-react'
+import { AlignCenter, AlignLeft, AlignRight, Bold, Italic, Smile } from 'lucide-react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import type { TextAlign, TextAppearance } from '../types'
 import { RangeField } from './Fields'
 import { useI18n, type MessageKey } from '../i18n'
+import { EmojiPicker } from './EmojiPicker'
+import { insertAtSelection } from '../lib/textInput'
 
 const FONT_OPTIONS = [
   { label: 'text.fontRounded', value: 'ui-rounded, "PingFang SC", "Microsoft YaHei UI", sans-serif' },
@@ -17,6 +20,24 @@ interface TextControlsProps {
 
 export function TextControls({ value, onChange }: TextControlsProps) {
   const { t } = useI18n()
+  const textRef = useRef<HTMLTextAreaElement>(null)
+  const selection = useRef({ start: value.text.length, end: value.text.length })
+  const pendingCaret = useRef<number | null>(null)
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const pickerId = useId()
+  const captureSelection = () => {
+    const input = textRef.current
+    if (input) selection.current = { start: input.selectionStart, end: input.selectionEnd }
+  }
+  const closeEmoji = () => { setEmojiOpen(false); textRef.current?.focus({ preventScroll: true }) }
+  useLayoutEffect(() => {
+    if (pendingCaret.current === null || !textRef.current) return
+    const caret = pendingCaret.current
+    pendingCaret.current = null
+    textRef.current.focus({ preventScroll: true })
+    textRef.current.setSelectionRange(caret, caret)
+    selection.current = { start: caret, end: caret }
+  })
   const alignment: Array<{ value: TextAlign; icon: typeof AlignLeft; label: MessageKey }> = [
     { value: 'left', icon: AlignLeft, label: 'text.alignLeft' },
     { value: 'center', icon: AlignCenter, label: 'text.alignCenter' },
@@ -25,10 +46,18 @@ export function TextControls({ value, onChange }: TextControlsProps) {
 
   return (
     <>
-      <label className="field">
-        <span className="field__label">{t('text.content')}</span>
-        <textarea rows={3} value={value.text} onChange={(event) => onChange({ text: event.currentTarget.value })} />
-      </label>
+      <div className="text-content-field" onKeyDown={(event) => {
+        if (emojiOpen && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeEmoji() }
+      }}>
+        <div className="text-content-field__header"><label className="field__label" htmlFor={`${pickerId}-text`}>{t('text.content')}</label><button type="button" className="emoji-trigger" aria-expanded={emojiOpen} aria-controls={pickerId} onClick={() => setEmojiOpen((open) => !open)}><Smile size={16} />{t('emoji.title')}</button></div>
+        <textarea ref={textRef} id={`${pickerId}-text`} rows={3} value={value.text} onSelect={captureSelection} onBlur={captureSelection} onChange={(event) => { onChange({ text: event.currentTarget.value }); captureSelection() }} />
+        {emojiOpen && <EmojiPicker id={pickerId} onClose={closeEmoji} onInsert={(emoji) => {
+          const next = insertAtSelection(value.text, emoji, selection.current)
+          pendingCaret.current = next.caret
+          onChange({ text: next.text })
+          setEmojiOpen(false)
+        }} />}
+      </div>
       <label className="field">
         <span className="field__label">{t('text.font')}</span>
         <select value={value.fontFamily} onChange={(event) => onChange({ fontFamily: event.currentTarget.value })}>

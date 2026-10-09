@@ -1,6 +1,19 @@
 import type { MessageKey } from '../types'
 
 export const zhTW = {
+  'emoji.title': 'Emoji',
+  'emoji.search': '搜尋 Emoji',
+  'emoji.searchPlaceholder': '搜尋表情、旅行、愛心…',
+  'emoji.close': '關閉 Emoji 選擇器',
+  'emoji.categories': 'Emoji 分類',
+  'emoji.faces': '表情',
+  'emoji.nature': '自然',
+  'emoji.food': '美食',
+  'emoji.travel': '旅行',
+  'emoji.symbols': '符號',
+  'emoji.recent': '最近使用',
+  'emoji.empty': '找不到表情，試試「海浪」或「heart」。',
+  'emoji.insert': '插入 {{emoji}}：{{name}}',
   'common.close': '關閉',
   'resource.loading': '正在讀取資源…',
   'resource.refresh': '重新整理後重試',

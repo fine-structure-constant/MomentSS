@@ -1,5 +1,6 @@
 import type { ComposerBlock, ComposerSettings, PhotoBlock, PhotoOverlay, TextAppearance } from '../types'
 import { clamp, computeCropRect, resolvePhotoOverlayLayout, type CropRect } from './geometry'
+import { splitGraphemes } from './textInput'
 
 export type TextMeasure = (text: string, style: TextAppearance) => number
 
@@ -7,7 +8,7 @@ export function createTextMeasurer(): TextMeasure {
   // Measurement only; the interactive preview never paints a canvas.
   const context = document.createElement('canvas').getContext('2d')
   return (text, style) => {
-    if (!context) return Array.from(text).length * style.fontSize
+    if (!context) return splitGraphemes(text).length * style.fontSize
     context.font = `${style.italic ? 'italic' : 'normal'} ${style.fontWeight} ${style.fontSize}px ${style.fontFamily}`
     return context.measureText(text).width
   }
@@ -17,7 +18,7 @@ export function wrapLayoutText(text: string, maxWidth: number, style: TextAppear
   return text.split('\n').flatMap((paragraph) => {
     const lines: string[] = []
     let line = ''
-    for (const character of Array.from(paragraph)) {
+    for (const character of splitGraphemes(paragraph)) {
       if (line && measure(line + character, style) > maxWidth) {
         lines.push(line)
         line = character

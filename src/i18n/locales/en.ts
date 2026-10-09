@@ -1,6 +1,19 @@
 import type { MessageKey } from '../types'
 
 export const en = {
+  'emoji.title': 'Emoji',
+  'emoji.search': 'Search emoji',
+  'emoji.searchPlaceholder': 'Search smiles, travel, hearts…',
+  'emoji.close': 'Close emoji picker',
+  'emoji.categories': 'Emoji categories',
+  'emoji.faces': 'Faces',
+  'emoji.nature': 'Nature',
+  'emoji.food': 'Food',
+  'emoji.travel': 'Travel',
+  'emoji.symbols': 'Symbols',
+  'emoji.recent': 'Recently used',
+  'emoji.empty': 'No emoji found. Try “wave” or “heart”.',
+  'emoji.insert': 'Insert {{emoji}}: {{name}}',
   'common.close': 'Close',
   'resource.loading': 'Loading resources…',
   'resource.refresh': 'Refresh and retry',
