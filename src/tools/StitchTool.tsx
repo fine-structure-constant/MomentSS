@@ -2,10 +2,11 @@ import {
   ArrowDown,
   ArrowUp,
   Columns2,
-  Download,
+  Save,
   GripVertical,
   Image as ImageIcon,
   ImagePlus,
+  Maximize2,
   Layers3,
   Plus,
   RotateCcw,
@@ -14,7 +15,10 @@ import {
   Type,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { canvasToBlob, downloadBlob, filesToPhotoBlocks, renderStitch, type RenderReport } from '../lib/canvas'
+import { filesToPhotoBlocks } from '../lib/canvas'
+import { createComposition } from '../lib/resourceExport'
+import { createLayerFromAsset, saveEditedAsset } from '../lib/assetLibrary'
+import { buildStitchLayout, createTextMeasurer } from '../lib/stitchLayout'
 import {
   findComposerAsset,
   findPhotoRow,
@@ -25,18 +29,22 @@ import {
   updatePhotoInBlocks,
 } from '../lib/composer'
 import { createPhotoOverlay, createTextBlock, DEFAULT_SETTINGS } from '../lib/defaults'
-import { clearStitchDraft, loadStitchDraft, saveStitchDraft } from '../lib/storage'
-import type { ComposerBlock, ComposerSettings, PhotoBlock, PhotoRowBlock, TextBlock } from '../types'
+import { loadStitchWorkspace, saveStitchDraft } from '../lib/storage'
+import type { ComposerBlock, ComposerSettings, ImportedAsset, PhotoBlock, PhotoRowBlock, TextBlock, SavedComposition } from '../types'
 import { useObjectUrl } from '../hooks/useObjectUrl'
 import { FieldGroup, RangeField } from '../components/Fields'
 import { PhotoTextEditorModal } from '../components/PhotoTextEditorModal'
 import { TextControls } from '../components/TextControls'
-import { UploadDropzone } from '../components/UploadDropzone'
+import { ResourcePanel } from '../components/ResourcePanel'
+import type { ResourceLibrary } from '../hooks/useResourceLibrary'
+import { StitchPreview } from '../components/StitchPreview'
 import type { ToastMessage } from '../components/StatusToast'
 import { useI18n } from '../i18n'
 
 interface StitchToolProps {
   onToast: (message: ToastMessage) => void
+  library: ResourceLibrary
+  onCover: (id: string) => void
 }
 
 function PhotoThumbnail({ block }: { block: PhotoBlock }) {
@@ -44,31 +52,38 @@ function PhotoThumbnail({ block }: { block: PhotoBlock }) {
   return url ? <img src={url} alt="" /> : <span className="thumb-placeholder"><ImageIcon size={18} /></span>
 }
 
-export function StitchTool({ onToast }: StitchToolProps) {
+export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   const { t } = useI18n()
   const [blocks, setBlocks] = useState<ComposerBlock[]>([])
+  const { assets, setAssets } = library
   const [settings, setSettings] = useState<ComposerSettings>(DEFAULT_SETTINGS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [hydrated, setHydrated] = useState(false)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [renderReport, setRenderReport] = useState<RenderReport | null>(null)
+  const workspaceSaveState = saveState === 'error' || library.saveState === 'error' ? 'error' : saveState === 'saving' || library.saveState === 'saving' ? 'saving' : 'saved'
   const [busy, setBusy] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [photoEditorId, setPhotoEditorId] = useState<string | null>(null)
   const [panelTab, setPanelTab] = useState<'import' | 'layers' | 'adjust'>('import')
-  const previewRef = useRef<HTMLCanvasElement>(null)
+  const [focusedId, setFocusedId] = useState<string | null>(null)
+  const stageRef = useRef<HTMLElement>(null)
+  const measure = useMemo(() => createTextMeasurer(), [])
+  const layout = useMemo(() => buildStitchLayout(blocks, settings, measure), [blocks, settings, measure])
+  const snapshot = useRef<{ blocks: ComposerBlock[]; settings: ComposerSettings } | null>(null)
 
-  const assets = useMemo(() => flattenComposerAssets(blocks), [blocks])
   const selected = useMemo(() => findComposerAsset(blocks, selectedId), [blocks, selectedId])
   const selectedRow = useMemo(() => findPhotoRow(blocks, selectedId), [blocks, selectedId])
+  const selectedLayer = blocks.find((block) => block.id === selectedId || (block.type === 'photo-row' && block.photos.some((photo) => photo.id === selectedId)))
+  const selectedLayerIndex = selectedLayer ? blocks.indexOf(selectedLayer) : -1
+  const selectedName = selected?.type === 'photo' ? selected.name : selected?.type === 'text' ? selected.text || t('stitch.blankText') : selectedRow ? t('stitch.photoRow') : ''
   const editingPhoto = useMemo(() => {
     const block = findComposerAsset(blocks, photoEditorId)
     return block?.type === 'photo' ? block : null
   }, [blocks, photoEditorId])
 
   useEffect(() => {
-    void loadStitchDraft()
-      .then((draft) => {
+    void loadStitchWorkspace()
+      .then(({ draft }) => {
         if (!draft) return
         setBlocks(draft.blocks)
         setSettings(draft.settings)
@@ -82,6 +97,7 @@ export function StitchTool({ onToast }: StitchToolProps) {
 
   useEffect(() => {
     if (!hydrated) return
+    snapshot.current = { blocks, settings }
     setSaveState('saving')
     const timer = window.setTimeout(() => {
       void saveStitchDraft({ blocks, settings, updatedAt: Date.now() })
@@ -92,22 +108,27 @@ export function StitchTool({ onToast }: StitchToolProps) {
   }, [blocks, settings, hydrated])
 
   useEffect(() => {
-    if (!previewRef.current || blocks.length === 0) return
-    let cancelled = false
-    void renderStitch(previewRef.current, blocks, settings, 560)
-      .then((report) => {
-        if (!cancelled) setRenderReport(report)
-      })
-      .catch(() => onToast({ text: t('stitch.previewError'), tone: 'warning' }))
-    return () => { cancelled = true }
-  }, [blocks, settings, onToast, t])
+    return () => {
+      const latest = snapshot.current
+      if (latest) void saveStitchDraft({ blocks: latest.blocks, settings: latest.settings, updatedAt: Date.now() }).catch(() => {})
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!focusedId) return
+    stageRef.current?.scrollTo({ top: 0 })
+    if (window.matchMedia('(max-width: 900px)').matches) stageRef.current?.scrollIntoView({ block: 'start' })
+  }, [focusedId])
 
   const handleFiles = async (files: File[]) => {
     try {
       const photos = await filesToPhotoBlocks(files.slice(0, 40))
       if (!photos.length) throw new Error('没有可读取的图片')
-      setBlocks((current) => [...current, ...photos])
-      setSelectedId(photos[0].id)
+      const layers = photos.map(createLayerFromAsset)
+      setAssets((current) => [...current, ...photos])
+      setBlocks((current) => [...current, ...layers])
+      setSelectedId(layers[0].id)
+      setFocusedId(null)
       onToast({ text: t('stitch.addedPhotos', { count: photos.length }), tone: 'success' })
     } catch {
       onToast({ text: t('stitch.imageReadError'), tone: 'warning' })
@@ -116,8 +137,24 @@ export function StitchTool({ onToast }: StitchToolProps) {
 
   const insertText = () => {
     const text = createTextBlock(t('text.defaultCard'))
-    setBlocks((current) => [...current, text])
-    setSelectedId(text.id)
+    const layer = createLayerFromAsset(text)
+    setAssets((current) => [...current, text])
+    setBlocks((current) => [...current, layer])
+    setSelectedId(layer.id)
+    setFocusedId(null)
+  }
+
+  const addAssetToCanvas = (asset: ImportedAsset) => {
+    const layer = createLayerFromAsset(asset)
+    setBlocks((current) => [...current, layer])
+    setSelectedId(layer.id)
+    setFocusedId(null)
+    onToast({ text: t('stitch.assetAdded'), tone: 'success' })
+  }
+
+  const inspectPart = (id: string, focusId: string) => {
+    setSelectedId(id)
+    setFocusedId(focusId)
     setPanelTab('adjust')
   }
 
@@ -153,19 +190,25 @@ export function StitchTool({ onToast }: StitchToolProps) {
 
   const removeLayer = (id: string) => {
     const target = blocks.find((block) => block.id === id)
-    const removedIds = target?.type === 'photo-row' ? target.photos.map((photo) => photo.id) : [id]
+    const removedIds = target?.type === 'photo-row' ? [id, ...target.photos.map((photo) => photo.id)] : [id]
     setBlocks((current) => current.filter((block) => block.id !== id))
+    if (focusedId === id) setFocusedId(null)
     if (selectedId && removedIds.includes(selectedId)) setSelectedId(null)
     if (photoEditorId && removedIds.includes(photoEditorId)) setPhotoEditorId(null)
   }
 
   const updateSelectedText = (patch: Partial<TextBlock>) => {
     if (!selected || selected.type !== 'text') return
+    const edited: TextBlock = { ...selected, ...patch, type: 'text' }
     setBlocks((current) => current.map((block) => block.id === selected.id && block.type === 'text' ? { ...block, ...patch, type: 'text' } : block))
+    setAssets((current) => saveEditedAsset(current, edited))
   }
 
   const updatePhoto = (id: string, patch: Partial<PhotoBlock>) => {
+    const photo = findComposerAsset(blocks, id)
+    if (!photo || photo.type !== 'photo') return
     setBlocks((current) => updatePhotoInBlocks(current, id, patch))
+    setAssets((current) => saveEditedAsset(current, { ...photo, ...patch, type: 'photo' }))
   }
 
   const updateRow = (id: string, patch: Partial<PhotoRowBlock>) => {
@@ -184,12 +227,13 @@ export function StitchTool({ onToast }: StitchToolProps) {
     }
     setBlocks(result.blocks)
     setSelectedId(selected.id)
-    setPanelTab('adjust')
   }
 
   const splitSelectedRow = () => {
     if (!selectedRow) return
     setBlocks((current) => splitPhotoRow(current, selectedRow.id))
+    if (selectedId === selectedRow.id) setSelectedId(selectedRow.photos[0].id)
+    if (focusedId === selectedRow.id) setFocusedId(selectedRow.photos[0].id)
   }
 
   const openPhotoTextEditor = (photo: PhotoBlock) => {
@@ -197,31 +241,43 @@ export function StitchTool({ onToast }: StitchToolProps) {
     setPhotoEditorId(photo.id)
   }
 
-  const exportImage = async () => {
-    if (!blocks.length) return
+  const saveLongImage = async () => {
+    if (!blocks.length || busy) return
     setBusy(true)
     try {
-      const canvas = document.createElement('canvas')
-      const report = await renderStitch(canvas, blocks, settings)
-      const blob = await canvasToBlob(canvas, settings.format, settings.quality)
-      const extension = settings.format === 'image/png' ? 'png' : 'jpg'
-      downloadBlob(blob, t('stitch.fileName', { date: new Date().toISOString().slice(0, 10), extension }))
-      const dimensions = { width: report.width, height: report.height }
-      onToast({ text: report.reduced ? t('stitch.downloadReduced', dimensions) : t('stitch.downloaded', dimensions), tone: report.reduced ? 'warning' : 'success' })
-    } catch {
-      onToast({ text: t('stitch.exportError'), tone: 'warning' })
-    } finally {
-      setBusy(false)
-    }
+      await library.flushAssets()
+      const composition = await createComposition(t('resource.defaultName', { number: library.compositions.length + 1 }), blocks, settings)
+      await library.addComposition(composition)
+      setPanelTab('import')
+      onToast({ text: t('resource.saved'), tone: 'success' })
+    } catch { onToast({ text: t('resource.saveError'), tone: 'warning' }) }
+    finally { setBusy(false) }
+  }
+
+  const openComposition = (composition: SavedComposition) => {
+    if (blocks.length && !window.confirm(t('resource.confirmOpen'))) return
+    setBlocks(structuredClone(composition.blocks))
+    setSettings({ ...composition.settings })
+    setSelectedId(flattenComposerAssets(composition.blocks)[0]?.id ?? null)
+    setFocusedId(null)
+    setPhotoEditorId(null)
+    setPanelTab('layers')
   }
 
   const resetDraft = async () => {
     if (blocks.length && !window.confirm(t('stitch.confirmClear'))) return
+    try {
+      await library.flushAssets()
+      await saveStitchDraft({ blocks: [], settings: DEFAULT_SETTINGS, updatedAt: Date.now() })
+    } catch {
+      onToast({ text: t('stitch.saveError'), tone: 'warning' })
+      return
+    }
     setBlocks([])
     setSelectedId(null)
     setPhotoEditorId(null)
+    setFocusedId(null)
     setSettings(DEFAULT_SETTINGS)
-    await clearStitchDraft()
     onToast({ text: t('stitch.cleared'), tone: 'info' })
   }
 
@@ -234,13 +290,13 @@ export function StitchTool({ onToast }: StitchToolProps) {
   return (
     <>
       <div className="stitch-layout">
-        <main className="canvas-stage" aria-label={t('stitch.previewAria')}>
+        <main ref={stageRef} className="canvas-stage" aria-label={t('stitch.previewAria')}>
           <div className="canvas-stage__topline">
             <span>{t('stitch.liveCanvas')}</span>
-            <span>{renderReport ? `${renderReport.width} × ${renderReport.height}` : t('stitch.waiting')}</span>
+            <span>{blocks.length ? `${Math.round(layout.width)} × ${Math.round(layout.height)}` : t('stitch.waiting')}</span>
           </div>
           {blocks.length ? (
-            <div className="long-canvas-wrap"><canvas ref={previewRef} /></div>
+            <StitchPreview layout={layout} background={settings.background} measure={measure} selectedId={selectedId} focusedId={focusedId} onSelect={inspectPart} onFocus={setFocusedId} />
           ) : (
             <div className="hero-empty">
               <div className="aperture-mark" aria-hidden="true"><span /><span /><span /><span /></div>
@@ -261,34 +317,8 @@ export function StitchTool({ onToast }: StitchToolProps) {
           </div>
 
           <div className="studio-sidebar__content">
-            {panelTab === 'import' && (
-              <section className="studio-pane studio-pane--import" role="tabpanel">
-                <div className="panel-heading"><div><h2>{t('stitch.addContent')}</h2><p>{t('upload.private')}</p></div></div>
-                <div className="import-actions">
-                  <UploadDropzone compact multiple onFiles={handleFiles} label={t('stitch.addPhotos')} />
-                  <button type="button" className="secondary-button compact-action" onClick={insertText}><Type size={17} /> {t('stitch.textCard')}</button>
-                </div>
-                <div className="asset-library-head">
-                  <div><h3>{t('stitch.assetLibrary')}</h3><p>{t('stitch.assetCount', { count: assets.length })}</p></div>
-                </div>
-                {assets.length ? (
-                  <div className="asset-grid">
-                    {assets.map((asset) => (
-                      <button
-                        key={asset.id}
-                        type="button"
-                        className={`asset-tile ${selectedId === asset.id ? 'is-selected' : ''} ${asset.type === 'text' ? 'asset-tile--text' : ''}`}
-                        aria-label={asset.type === 'photo' ? `${t('stitch.assetPhoto')}: ${asset.name}` : `${t('stitch.assetText')}: ${asset.text || t('stitch.blankText')}`}
-                        onClick={() => { setSelectedId(asset.id); setPanelTab('adjust') }}
-                      >
-                        <span className="asset-tile__preview">{asset.type === 'photo' ? <PhotoThumbnail block={asset} /> : <><Type size={21} /><em>{asset.text || t('stitch.blankText')}</em></>}</span>
-                        <span className="asset-tile__name">{asset.type === 'photo' ? asset.name : asset.text || t('stitch.blankText')}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : <div className="mini-empty"><ImageIcon size={26} /><p>{t('stitch.sortHint')}</p></div>}
-              </section>
-            )}
+            {panelTab === 'import' && <ResourcePanel library={library} selectedSourceId={selected?.sourceId ?? selected?.id ?? null}
+              onFiles={handleFiles} onText={insertText} onAdd={addAssetToCanvas} onOpen={openComposition} onCover={onCover} onToast={onToast} />}
 
             {panelTab === 'layers' && (
               <section className="studio-pane studio-pane--layers" role="tabpanel" aria-label={t('stitch.sequenceAria')}>
@@ -299,7 +329,7 @@ export function StitchTool({ onToast }: StitchToolProps) {
                 <div className="sequence-scroll">
                   <ol className="sequence-list">
                     {blocks.map((block, index) => {
-                      const rowSelected = block.type === 'photo-row' && block.photos.some((photo) => photo.id === selectedId)
+                      const rowSelected = block.type === 'photo-row' && (block.id === selectedId || block.photos.some((photo) => photo.id === selectedId))
                       const itemSelected = block.id === selectedId || rowSelected
                       return (
                         <li key={block.id}>
@@ -309,7 +339,11 @@ export function StitchTool({ onToast }: StitchToolProps) {
                             onDragStart={() => setDraggedId(block.id)}
                             onDragOver={(event) => event.preventDefault()}
                             onDrop={() => { if (draggedId) moveBefore(draggedId, block.id); setDraggedId(null) }}
-                            onClick={() => setSelectedId(block.type === 'photo-row' ? block.photos[0].id : block.id)}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={t('stitch.selectLayer', { number: index + 1 })}
+                            onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setSelectedId(block.id) } }}
+                            onClick={() => setSelectedId(block.id)}
                           >
                             <span className="drag-handle" aria-hidden="true"><GripVertical size={17} /></span>
                             <span className="sequence-number">{index + 1}</span>
@@ -351,29 +385,43 @@ export function StitchTool({ onToast }: StitchToolProps) {
                   )}
                   <p>{t('stitch.pairPhotosHint')}</p>
                 </div>
+                <FieldGroup title={t('stitch.canvasSettings')}>
+                  <RangeField label={t('stitch.outputWidth')} value={settings.width} min={720} max={2160} step={120} suffix="px" onChange={(width) => setSettings({ ...settings, width })} />
+                  <RangeField label={t('stitch.photoGap')} value={settings.gap} min={0} max={80} suffix="px" onChange={(gap) => setSettings({ ...settings, gap })} />
+                  <RangeField label={t('stitch.outerPadding')} value={settings.padding} min={0} max={120} suffix="px" onChange={(padding) => setSettings({ ...settings, padding })} />
+                  <label className="field"><span className="field__label">{t('stitch.backgroundColor')}</span><input type="color" value={settings.background} onChange={(event) => setSettings({ ...settings, background: event.currentTarget.value })} /></label>
+                </FieldGroup>
               </section>
             )}
 
             {panelTab === 'adjust' && (
               <section className="studio-pane" role="tabpanel">
-                {!selected && <div className="inspector-empty"><SlidersHorizontal size={22} /><p>{t('stitch.selectLayerHint')}</p></div>}
+                {(selected || selectedRow) ? (
+                  <div className="adjust-context">
+                    <span className="adjust-context__thumb">{selected?.type === 'photo' ? <PhotoThumbnail block={selected} /> : selected?.type === 'text' ? <Type size={23} /> : selectedRow?.photos.map((photo) => <PhotoThumbnail key={photo.id} block={photo} />)}</span>
+                    <div><h2>{selectedName}</h2><p>{t('stitch.layerNumber', { number: selectedLayerIndex + 1 })}{selectedRow ? ` · ${t('stitch.photoRow')}${selected?.type === 'photo' ? ` · ${t('stitch.photoNumber', { number: selectedRow.photos.findIndex((photo) => photo.id === selected.id) + 1 })}` : ''}` : ''}</p></div>
+                    {selectedLayer && <button type="button" className="icon-button" aria-label={t('stitch.focusSelection')} onClick={() => setFocusedId(selectedLayer.id)}><Maximize2 size={17} /></button>}
+                    {selectedRow && <div className="adjust-context__photos">{selectedRow.photos.map((photo, index) => <button key={photo.id} type="button" className={selectedId === photo.id ? 'is-active' : ''} onClick={() => setSelectedId(photo.id)}>{index + 1}. {photo.name}</button>)}</div>}
+                  </div>
+                ) : <div className="inspector-empty"><SlidersHorizontal size={22} /><p>{t('stitch.selectLayerHint')}</p></div>}
+
+                {selectedRow && <FieldGroup title={t('stitch.photoRow')} actions={<button type="button" className="danger-text" onClick={() => removeLayer(selectedRow.id)}>{t('common.delete')}</button>}>
+                  <RangeField label={t('stitch.rowHeight')} value={selectedRow.heightRatio ?? 62} min={35} max={100} suffix="%" onChange={(heightRatio) => updateRow(selectedRow.id, { heightRatio })} />
+                  <RangeField label={t('stitch.rowGap')} value={selectedRow.gap ?? 0} min={0} max={80} suffix="px" onChange={(gap) => updateRow(selectedRow.id, { gap })} />
+                  <button type="button" className="text-button" onClick={splitSelectedRow}>{t('stitch.splitRow')}</button>
+                </FieldGroup>}
 
                 {selected?.type === 'text' && (
                   <FieldGroup title={t('stitch.textStyle')} actions={<button type="button" className="danger-text" onClick={() => removeAsset(selected.id)}>{t('common.delete')}</button>}>
-                    <TextControls value={selected} onChange={updateSelectedText} />
+                    <TextControls key={selected.id} value={selected} onChange={updateSelectedText} />
                     <RangeField label={t('stitch.verticalPadding')} value={selected.padding} min={24} max={160} suffix="px" onChange={(padding) => updateSelectedText({ padding })} />
                   </FieldGroup>
                 )}
 
                 {selected?.type === 'photo' && (
                   <>
-                    <FieldGroup title={selectedRow ? t('stitch.photoRow') : t('stitch.photoFrame')} actions={<button type="button" className="danger-text" onClick={() => removeAsset(selected.id)}>{t('common.delete')}</button>}>
-                      {selectedRow ? (
-                        <>
-                          <RangeField label={t('stitch.rowHeight')} value={selectedRow.heightRatio ?? 62} min={35} max={100} suffix="%" onChange={(heightRatio) => updateRow(selectedRow.id, { heightRatio })} />
-                          <RangeField label={t('stitch.rowGap')} value={selectedRow.gap ?? 0} min={0} max={80} suffix="px" onChange={(gap) => updateRow(selectedRow.id, { gap })} />
-                        </>
-                      ) : (
+                    <FieldGroup title={t('stitch.photoFrame')} actions={<button type="button" className="danger-text" onClick={() => removeAsset(selected.id)}>{t('common.delete')}</button>}>
+                      {!selectedRow && (
                         <RangeField label={t('stitch.frameHeight')} value={selected.frameHeight ?? 100} min={45} max={150} suffix="%" onChange={(frameHeight) => updatePhoto(selected.id, { frameHeight })} />
                       )}
                       <RangeField label={t('stitch.cropZoom')} value={selected.cropZoom ?? 1} min={1} max={4} step={0.05} suffix="×" onChange={(cropZoom) => updatePhoto(selected.id, { cropZoom })} />
@@ -394,21 +442,13 @@ export function StitchTool({ onToast }: StitchToolProps) {
                   </>
                 )}
 
-                <FieldGroup title={t('stitch.canvasSettings')}>
-                  <RangeField label={t('stitch.outputWidth')} value={settings.width} min={720} max={2160} step={120} suffix="px" onChange={(width) => setSettings({ ...settings, width })} />
-                  <RangeField label={t('stitch.photoGap')} value={settings.gap} min={0} max={80} suffix="px" onChange={(gap) => setSettings({ ...settings, gap })} />
-                  <RangeField label={t('stitch.outerPadding')} value={settings.padding} min={0} max={120} suffix="px" onChange={(padding) => setSettings({ ...settings, padding })} />
-                  <label className="field"><span className="field__label">{t('stitch.backgroundColor')}</span><input type="color" value={settings.background} onChange={(event) => setSettings({ ...settings, background: event.currentTarget.value })} /></label>
-                  <label className="field"><span className="field__label">{t('stitch.format')}</span><select value={settings.format} onChange={(event) => setSettings({ ...settings, format: event.currentTarget.value as ComposerSettings['format'] })}><option value="image/jpeg">{t('stitch.jpgSmall')}</option><option value="image/png">{t('stitch.pngLossless')}</option></select></label>
-                  {settings.format === 'image/jpeg' && <RangeField label={t('stitch.jpgQuality')} value={Math.round(settings.quality * 100)} min={70} max={100} suffix="%" onChange={(quality) => setSettings({ ...settings, quality: quality / 100 })} />}
-                </FieldGroup>
               </section>
             )}
           </div>
 
           <div className="studio-sidebar__footer">
-            <div className={`save-indicator save-indicator--${saveState}`}><span />{saveState === 'saving' ? t('stitch.saving') : saveState === 'error' ? t('stitch.saveError') : t('stitch.saved')}</div>
-            <button type="button" className="primary-button" onClick={() => void exportImage()} disabled={!blocks.length || busy}><Download size={18} />{busy ? t('stitch.generating') : t('stitch.download')}</button>
+            <div className={`save-indicator save-indicator--${workspaceSaveState}`}><span />{workspaceSaveState === 'saving' ? t('stitch.saving') : workspaceSaveState === 'error' ? t('stitch.saveError') : t('stitch.saved')}</div>
+            <button type="button" className="primary-button" onClick={() => void saveLongImage()} disabled={!blocks.length || busy}><Save size={18} />{busy ? t('resource.saving') : t('resource.saveLong')}</button>
           </div>
         </aside>
       </div>

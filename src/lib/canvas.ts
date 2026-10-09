@@ -4,11 +4,12 @@ import type {
   CropState,
   PhotoBlock,
   PhotoOverlay,
-  PhotoRowBlock,
   SourceImage,
   TextBlock,
 } from '../types'
-import { clamp, computeCropRect, fitCanvasSize, gridDimensions, resolvePhotoOverlayLayout } from './geometry'
+import { clamp, computeCropRect, fitCanvasSize, gridDimensions } from './geometry'
+import { buildStitchLayout, createTextMeasurer, layoutPhotoOverlay, type StitchLayout } from './stitchLayout'
+import { isImportableImage, prepareImageFile } from './imageImport'
 
 interface LoadedImage {
   source: CanvasImageSource
@@ -36,7 +37,12 @@ async function loadImage(blob: Blob): Promise<LoadedImage> {
   const image = new Image()
   image.decoding = 'async'
   image.src = url
-  await image.decode()
+  try {
+    await image.decode()
+  } catch (error) {
+    URL.revokeObjectURL(url)
+    throw error
+  }
   return {
     source: image,
     width: image.naturalWidth,
@@ -57,53 +63,6 @@ function setTextFont(context: CanvasRenderingContext2D, block: TextBlock, scale:
   context.font = `${style} ${block.fontWeight} ${block.fontSize * scale}px ${block.fontFamily}`
 }
 
-function wrapText(
-  context: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number,
-): string[] {
-  const paragraphs = text.split('\n')
-  const lines: string[] = []
-
-  paragraphs.forEach((paragraph) => {
-    if (!paragraph) {
-      lines.push('')
-      return
-    }
-    let line = ''
-    for (const character of Array.from(paragraph)) {
-      const test = `${line}${character}`
-      if (line && context.measureText(test).width > maxWidth) {
-        lines.push(line)
-        line = character
-      } else {
-        line = test
-      }
-    }
-    lines.push(line)
-  })
-
-  return lines.length ? lines : ['']
-}
-
-function textMetrics(
-  context: CanvasRenderingContext2D,
-  block: TextBlock,
-  innerWidth: number,
-  scale: number,
-): { lines: string[]; height: number; lineHeight: number } {
-  setTextFont(context, block, scale)
-  const padding = block.padding * scale
-  const lines = wrapText(context, block.text, Math.max(40, innerWidth - padding * 2))
-  const lineHeight = block.fontSize * block.lineHeight * scale
-  const rotationRoom = Math.abs(Math.sin((block.rotation * Math.PI) / 180)) * innerWidth * 0.12
-  return {
-    lines,
-    lineHeight,
-    height: Math.max(120 * scale, lines.length * lineHeight + padding * 2 + rotationRoom),
-  }
-}
-
 function drawPhotoOverlay(
   context: CanvasRenderingContext2D,
   overlay: PhotoOverlay,
@@ -113,16 +72,15 @@ function drawPhotoOverlay(
   height: number,
   scale: number,
 ): void {
-  const layout = resolvePhotoOverlayLayout(overlay)
-  const boxWidth = width * layout.width
-  const textPadding = (overlay.boxPadding ?? 28) * scale
+  const metrics = layoutPhotoOverlay({ ...overlay, fontSize: overlay.fontSize * scale, boxPadding: (overlay.boxPadding ?? 28) * scale }, width, height, (text, style) => {
+    context.font = `${style.italic ? 'italic' : 'normal'} ${style.fontWeight} ${style.fontSize}px ${style.fontFamily}`
+    return context.measureText(text).width
+  })
+  const { width: boxWidth, height: boxHeight, padding: textPadding, lines, lineHeight } = metrics
   const style = overlay.italic ? 'italic' : 'normal'
   context.font = `${style} ${overlay.fontWeight} ${overlay.fontSize * scale}px ${overlay.fontFamily}`
-  const lines = wrapText(context, overlay.text, Math.max(40, boxWidth - textPadding * 2))
-  const lineHeight = overlay.fontSize * overlay.lineHeight * scale
-  const boxHeight = Math.max(lineHeight + textPadding * 2, lines.length * lineHeight + textPadding * 2)
-  const centerX = clamp(x + width * layout.x, x + boxWidth / 2, x + width - boxWidth / 2)
-  const centerY = clamp(y + height * layout.y, y + boxHeight / 2, y + height - boxHeight / 2)
+  const centerX = x + metrics.x
+  const centerY = y + metrics.y
   context.save()
   context.translate(centerX, centerY)
   context.rotate((overlay.rotation * Math.PI) / 180)
@@ -185,10 +143,6 @@ function roundedRectPath(
   context.closePath()
 }
 
-function rowHeight(block: PhotoRowBlock, width: number): number {
-  return width * ((block.heightRatio ?? 62) / 100)
-}
-
 async function drawPhotoFrame(
   context: CanvasRenderingContext2D,
   block: PhotoBlock,
@@ -204,8 +158,13 @@ async function drawPhotoFrame(
     x: block.cropX ?? 0,
     y: block.cropY ?? 0,
   })
+  context.save()
+  context.beginPath()
+  context.rect(x, y, width, height)
+  context.clip()
   context.drawImage(loaded.source, crop.sx, crop.sy, crop.sw, crop.sh, x, y, width, height)
   if (block.overlay) drawPhotoOverlay(context, block.overlay, x, y, width, height, scale)
+  context.restore()
   loaded.close()
 }
 
@@ -229,125 +188,51 @@ export async function renderStitch(
   settings: ComposerSettings,
   requestedWidth = settings.width,
 ): Promise<RenderReport> {
-  const measureCanvas = document.createElement('canvas')
-  const measureContext = measureCanvas.getContext('2d')
-  if (!measureContext) throw new Error('当前浏览器无法创建图片画布')
+  const layout = buildStitchLayout(blocks, settings, createTextMeasurer())
+  return renderStitchLayout(canvas, layout, settings.background, requestedWidth)
+}
 
-  const baseScale = requestedWidth / settings.width
-  const outerPadding = settings.padding * baseScale
-  const innerWidth = requestedWidth - outerPadding * 2
-  const gap = settings.gap * baseScale
-  const heights = blocks.map((block) => {
-    if (block.type === 'photo') return innerWidth * (block.height / block.width) * ((block.frameHeight ?? 100) / 100)
-    if (block.type === 'photo-row') return rowHeight(block, innerWidth)
-    return textMetrics(measureContext, block, innerWidth, baseScale).height
-  })
-  const rawHeight = outerPadding * 2 + heights.reduce((sum, height) => sum + height, 0) + Math.max(0, blocks.length - 1) * gap
-  const fitted = fitCanvasSize(requestedWidth, Math.max(1, rawHeight))
-  const finalScale = baseScale * fitted.scale
-  const finalPadding = settings.padding * finalScale
-  const finalInnerWidth = fitted.width - finalPadding * 2
-  const finalGap = settings.gap * finalScale
+export async function renderStitchLayout(canvas: HTMLCanvasElement, layout: StitchLayout, background: string, requestedWidth = layout.width): Promise<RenderReport> {
+  const baseScale = requestedWidth / layout.width
+  const fitted = fitCanvasSize(requestedWidth, Math.max(1, layout.height * baseScale))
 
   canvas.width = fitted.width
   canvas.height = fitted.height
   const context = canvas.getContext('2d')
   if (!context) throw new Error('当前浏览器无法创建图片画布')
-  context.fillStyle = settings.background
+  context.fillStyle = background
   context.fillRect(0, 0, canvas.width, canvas.height)
 
-  let y = finalPadding
-  for (let index = 0; index < blocks.length; index += 1) {
-    const block = blocks[index]
-    if (block.type === 'photo') {
-      const height = finalInnerWidth * (block.height / block.width) * ((block.frameHeight ?? 100) / 100)
-      await drawPhotoFrame(context, block, finalPadding, y, finalInnerWidth, height, finalScale)
-      y += height
-    } else if (block.type === 'photo-row') {
-      const height = rowHeight(block, finalInnerWidth)
-      const rowGap = (block.gap ?? settings.gap) * finalScale
-      const cellWidth = Math.max(1, (finalInnerWidth - rowGap) / 2)
-      await Promise.all(block.photos.map((photo, photoIndex) => drawPhotoFrame(
-        context,
-        photo,
-        finalPadding + photoIndex * (cellWidth + rowGap),
-        y,
-        cellWidth,
-        height,
-        finalScale,
-      )))
-      y += height
-    } else {
-      const metrics = textMetrics(context, block, finalInnerWidth, finalScale)
+  context.scale(baseScale * fitted.scale, baseScale * fitted.scale)
+  for (const item of layout.items) {
+    const { block, x, y, width, height } = item
+    if (block.type !== 'text') {
+      for (const photo of item.photos) {
+        await drawPhotoFrame(context, photo.photo, x + photo.x, y, photo.width, photo.height, 1)
+      }
+    } else if (item.text) {
+      const metrics = item.text
       context.fillStyle = block.background
-      context.fillRect(finalPadding, y, finalInnerWidth, metrics.height)
+      context.fillRect(x, y, width, height)
       context.save()
-      context.translate(finalPadding + finalInnerWidth / 2, y + metrics.height / 2)
+      context.beginPath()
+      context.rect(x, y, width, height)
+      context.clip()
+      context.translate(x + width / 2, y + height / 2)
       context.rotate((block.rotation * Math.PI) / 180)
-      setTextFont(context, block, finalScale)
+      setTextFont(context, block, 1)
       context.fillStyle = block.color
       context.textBaseline = 'middle'
       context.textAlign = block.align
-      const x = block.align === 'left' ? -finalInnerWidth / 2 + block.padding * finalScale : block.align === 'right' ? finalInnerWidth / 2 - block.padding * finalScale : 0
+      const textX = block.align === 'left' ? -width / 2 + block.padding : block.align === 'right' ? width / 2 - block.padding : 0
       const startY = -((metrics.lines.length - 1) * metrics.lineHeight) / 2
       metrics.lines.forEach((line, lineIndex) => {
-        context.fillText(line, x, startY + lineIndex * metrics.lineHeight)
+        context.fillText(line, textX, startY + lineIndex * metrics.lineHeight)
       })
       context.restore()
-      y += metrics.height
     }
-    if (index < blocks.length - 1) y += finalGap
   }
 
-  return { width: fitted.width, height: fitted.height, reduced: fitted.reduced, scale: fitted.scale }
-}
-
-export async function renderCoverComposite(
-  canvas: HTMLCanvasElement,
-  source: SourceImage,
-  crop: CropState,
-  requestedWidth = source.width,
-): Promise<RenderReport> {
-  const sourceHeightAtWidth = requestedWidth * (source.height / source.width)
-  const rawHeight = sourceHeightAtWidth + requestedWidth
-  const fitted = fitCanvasSize(requestedWidth, rawHeight)
-  canvas.width = fitted.width
-  canvas.height = fitted.height
-  const context = canvas.getContext('2d')
-  if (!context) throw new Error('当前浏览器无法创建图片画布')
-
-  const loaded = await loadImage(source.blob)
-  const halfSource = source.height / 2
-  const halfDest = (sourceHeightAtWidth / 2) * fitted.scale
-  const square = fitted.width
-  const cropRect = computeCropRect(source.width, source.height, 1, crop)
-
-  context.fillStyle = '#ffffff'
-  context.fillRect(0, 0, canvas.width, canvas.height)
-  context.drawImage(loaded.source, 0, 0, source.width, halfSource, 0, 0, fitted.width, halfDest)
-  context.drawImage(
-    loaded.source,
-    cropRect.sx,
-    cropRect.sy,
-    cropRect.sw,
-    cropRect.sh,
-    0,
-    halfDest,
-    square,
-    square,
-  )
-  context.drawImage(
-    loaded.source,
-    0,
-    halfSource,
-    source.width,
-    source.height - halfSource,
-    0,
-    halfDest + square,
-    fitted.width,
-    halfDest,
-  )
-  loaded.close()
   return { width: fitted.width, height: fitted.height, reduced: fitted.reduced, scale: fitted.scale }
 }
 
@@ -465,13 +350,14 @@ export function downloadBlob(blob: Blob, fileName: string): void {
 export async function filesToPhotoBlocks(files: File[]): Promise<PhotoBlock[]> {
   const photos: PhotoBlock[] = []
   for (const file of files) {
-    if (!file.type.startsWith('image/')) continue
-    const dimensions = await inspectImage(file)
+    if (!await isImportableImage(file)) continue
+    const blob = await prepareImageFile(file)
+    const dimensions = await inspectImage(blob)
     photos.push({
       id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       type: 'photo',
       name: file.name,
-      blob: file,
+      blob,
       width: dimensions.width,
       height: dimensions.height,
     })
@@ -480,6 +366,7 @@ export async function filesToPhotoBlocks(files: File[]): Promise<PhotoBlock[]> {
 }
 
 export async function fileToSourceImage(file: File): Promise<SourceImage> {
-  const dimensions = await inspectImage(file)
-  return { name: file.name, blob: file, ...dimensions }
+  const blob = await prepareImageFile(file)
+  const dimensions = await inspectImage(blob)
+  return { name: file.name, blob, ...dimensions }
 }

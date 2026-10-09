@@ -16,6 +16,7 @@ export function RangeField({ label, value, min, max, step = 1, suffix = '', onCh
       <span className="field__label"><span>{label}</span><output>{value}{suffix}</output></span>
       <input
         type="range"
+        aria-label={label}
         min={min}
         max={max}
         step={step}

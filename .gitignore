@@ -54,3 +54,5 @@ release/
 deploy/config.json
 __pycache__/
 *.pyc
+
+.workbuddy-ai/

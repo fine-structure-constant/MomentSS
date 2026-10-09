@@ -16,7 +16,7 @@
 
 **STORY:** The user sees that images stay local, chooses one of three jobs, adds source images, works directly against a large result preview, and downloads a social-ready output. Empty, loading, saved, error, and memory-limit states explain recovery in plain Chinese.
 
-**FIRST VIEWPORT:** A cyan vertical rail holds the three global tools, a slim top bar names the current workspace and local state, a dominant canvas fills the center, and a right property workspace switches between Import, Layers, and Adjust. On mobile, the rail becomes bottom navigation and the canvas still leads.
+**FIRST VIEWPORT:** A cyan vertical rail holds the three global tools, a slim top bar names the current workspace and local state, a dominant canvas fills the center, and a right property workspace switches between Resources, Layers, and Adjust. On mobile, the rail becomes bottom navigation; collage editing starts with the canvas, and cover composition starts with resource selection.
 
 **FORM:** Direction 2 was explicitly selected by the user on 2026-10-08 and supersedes direction 1. The supplied preview is the visual authority.
 
@@ -67,3 +67,47 @@ The Impeccable engine binary and automated comp-diff detector were unavailable, 
 - Layer rows use compact 3px corners. Repeated between-layer text actions were removed; text and two-photo-row actions live once at the bottom.
 - Adjacent photos can be grouped into one two-column row, adjusted independently, given row height and gap values, and split back into vertical layers.
 - Desktop canvas and property content both report independent `overflow: auto`; 1440×900 and 390×844 have no horizontal overflow. Tests: 16 passed. Production build: passed.
+
+## Independent library and interactive preview — 2026-10-08
+
+- The latest user request supersedes the Canvas-preview behavior above. Preserve direction 2 and use a structured HTML/SVG preview backed by shared layout, crop and text-wrap data; Canvas remains the export renderer.
+- Imported assets persist in their own IndexedDB store. Clearing a draft keeps them, removing an asset keeps existing layers, and repeated insertion creates independently editable layers. A real v1 database upgrade and deliberately empty library were checked in the browser.
+- Canvas-wide settings belong to Layers. Adjust begins with the selected object's thumbnail, name, layer number and two-photo child number. Adding photos/text preserves the active panel.
+- Clicking a preview part opens inline enlarged inspection with the existing adjustment workspace, back/neighbor controls and Escape. Keyboard sliders update the same layout, and downloaded image dimensions match it.
+- Evidence: 23 unit tests, production build and 13 browser scenarios passed; no browser errors. Reviewed 1440×900 desktop and 390×844 mobile/English captures, batch-fixed selection contrast, mobile blank space and group spacing, then confirmed once.
+- The Impeccable context launcher could not write/download its missing engine, so context and visual review were completed directly from the existing project files and actual browser captures. Real phone touch and production-photo acceptance remain device/content checks.
+
+## Structured resource edit persistence — 2026-10-08
+
+- Editing text content/appearance or photo crops/overlays now updates the matching library template. Reinserted layers retain all editable fields; already placed copies stay independent.
+- Photo tiles show a compact text annotation, and the library hint describes automatic edit saving in all three locales. Preserve direction 2 and the existing three-column library.
+- Recover unsynchronized legacy draft edits once; do not restore deliberately removed resources or overwrite newer templates with older copies on subsequent loads. Legacy drafts have no per-copy edit times, so the last changed copy in canvas order wins only during migration.
+- Evidence: 28 unit tests and production build passed; 11 isolated Edge browser scenarios verified real IndexedDB records, refresh, clear/reuse, nested photo edits, removal, independent copies and migration. No browser errors or 390px horizontal overflow. Desktop and mobile captures reviewed.
+
+## Apple photo import — 2026-10-08
+
+- Keep direction 2. All three tools share local HEIC / HEIF / HIF normalization to PNG via an on-demand heic-to codec. The original filename remains visible in the resource library.
+- Upload actions show localized reading text, expose aria-busy and disable repeat file selection until decoding finishes. Existing formats retain their original blobs and never load the HEIF codec.
+- Evidence: 34 unit tests, production build and 12 isolated Edge production-browser scenarios passed using libheif's official example.heic. Checked empty/generic MIME, previews, photo text, IndexedDB resource persistence, clear/reuse, cover and four-tile downloads, corrupt-input recovery and same-origin-only requests. Reviewed the desktop capture; no page errors. Original metadata, HDR and dynamic content are not retained in the normalized still image.
+
+## Unified Resources and structured cover — 2026-10-08
+
+- The user's latest request replaces Import with Resources and supersedes the old flattened-image cover workflow. Resources groups creation, imported templates, saved collage snapshots and saved covers; all have direct structured viewing and PNG / JPG export. The collage footer saves a snapshot instead of downloading.
+- Preserve direction 2, the three-column imported grid and existing object editing. Saved compositions live in independent IndexedDB records and contain their own layers/settings/blobs. Clearing drafts or deleting original sources preserves snapshots. A storage read failure blocks editing rather than writing empty data over the library.
+- Cover composition selects a saved long collage and a single imported photo, inserts a full-width square at a complete-layer boundary and balances outer whitespace. Crop, boundary, surrounding spacing and background are parameterized. Saved covers retain the exact source-photo version and can be edited/exported after deleting the original sources.
+- Shared structured layout drives preview and export. Resource viewers trap keyboard focus, restore the opener, and use Escape first to leave local zoom then to close. Cover mobile flow starts with source selection; focused preview scrolls into view above bottom navigation.
+- Evidence: 39 unit tests, production build and 20 isolated Edge production-browser scenarios passed with no page errors. Verified PNG/JPG files, edited text, independent snapshots, restore/reopen/delete, storage-read errors and real HEIC import/export. A 1080×2421 exported cover has the expected solid-cover pixels at 15 points across its center square. Reviewed desktop and 390px mobile captures; English has no horizontal overflow. Illustrative sources are synthetic SVGs; real WeChat client behavior and phone touch remain external device checks.
+
+## Photo-text input focus fix — 2026-10-08
+
+- Reproduced the reported bug in an isolated browser context: typing the first character transfers focus from the textarea to the close button. The mount effect depends on an inline onClose callback that changes on every overlay update.
+- Separate one-time dialog focus/body-scroll initialization from the Escape listener's callback lifecycle. Text and parameter edits retain their active control and caret; no visual or workflow changes.
+- Verified in Edge development preview at 1440×900 and 390×844: per-key typing, Chinese insertion, browser-level composition events, insertion at the caret, repeated slider/nudge keys, Escape, reopening, refresh and matching persisted resource text. No page errors; production build passed. Real OS IME was not automated.
+
+## Emoji input — 2026-10-09
+
+- Preserve direction 2. A Smile-icon Emoji button beside the content label opens a compact inline picker shared by text cards and photo overlays. Categories, cross-language search, explicit empty state and seven recent local choices make common emoji discoverable without dependencies or remote requests.
+- Retain the textarea's UTF-16 selection while searching; insertion replaces the selection or inserts at the caret, protects complete graphemes and restores focus/caret for continued typing. Escape closes the picker before the photo-text modal. Switching text layers resets picker state.
+- Shared layout now wraps at grapheme boundaries, preserving families, flags, skin tones and variation selectors. Emoji persist in the existing text model; pasted/system-input emoji remain unrestricted. Native font appearance varies by device (Windows flag glyphs can display letter pairs).
+- Evidence: 44 unit tests and production build passed. Ten isolated Edge development-browser scenarios verified selection/caret, continued typing, search/category/empty states, recent-history refresh, real IndexedDB text/overlay persistence, Escape handling, Simplified/Traditional Chinese and English, 44px mobile emoji targets and no 390px overflow. Actual PNG export contained 2965 red emoji pixels. Reviewed desktop/mobile captures once and confirmed after one bounded fix round. Real mobile software keyboard remains a device check.
+- Impeccable context loader could not access its missing engine cache; existing PRODUCT.md/DESIGN.md and the installed Operate/craft-floor guidance were read directly.

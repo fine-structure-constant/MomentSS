@@ -14,8 +14,8 @@
         <div class="meta" aria-label="项目快照">
           <span class="tag">阶段：已实现并验证</span>
           <span class="tag">平台：响应式 Web</span>
-          <span class="tag">更新：2026-10-08</span>
-          <span class="tag">Git：已初始化，忽略规则已配置</span>
+          <span class="tag">更新：2026-10-09</span>
+          <span class="tag">验证基线：dev / 47afe5c，加本次未提交修改</span>
         </div>
       </div>
     </header>
@@ -38,7 +38,7 @@
           <tbody>
             <tr><td>REQ-001</td><td>手机与电脑上传本地图片、刷新后恢复草稿、下载结果；不上传服务器。</td><td>accepted</td></tr>
             <tr><td>REQ-002</td><td>长图工具可排序照片，在任意位置插入文字，并调整颜色、字体、字号、对齐与旋转。</td><td>accepted</td></tr>
-            <tr><td>REQ-003</td><td>封面工具指导裁出正方形，并将其插入长图中部，同时显示中心方形缩略图预览。</td><td>accepted</td></tr>
+            <tr><td>REQ-003</td><td>早期封面工具指导裁出正方形并插入扁平长图中部。</td><td>superseded by REQ-021</td></tr>
             <tr><td>REQ-004</td><td>切图工具可把一张图裁成 2×2、3×2 或 3×3，并按发布顺序下载 4 / 6 / 9 张。</td><td>accepted</td></tr>
             <tr><td>REQ-005</td><td>明亮、简洁、影像优先，参考 Instagram 的克制与清晰，同时保留自己的编辑器气质。</td><td>accepted</td></tr>
             <tr><td>REQ-006</td><td>桌面长图编辑器的工具、画布和属性区域必须拥有独立滚动边界，不能带动整页或彼此联动。</td><td>accepted</td></tr>
@@ -46,10 +46,19 @@
             <tr><td>REQ-008</td><td>图片文字使用当前窗口内的专用弹窗编辑器，文本框可在图片内自由拖动与精细定位，不受上中下三档限制。</td><td>accepted</td></tr>
             <tr><td>REQ-009</td><td>界面支持简中、繁中与英语；文案集中管理，便于直接调整内容。</td><td>accepted</td></tr>
             <tr><td>REQ-010</td><td>整体 UI 改为方向 2：青色竖向工具轨、顶部项目栏、中央大画布与右侧编辑工作区。</td><td>accepted</td></tr>
-            <tr><td>REQ-011</td><td>右侧栏参考 Adobe 的信息架构，分开“导入 / 图层 / 调整”；图层管理顺序，对每个图片或文字容器调整内部属性。</td><td>accepted</td></tr>
+            <tr><td>REQ-011</td><td>右侧栏参考 Adobe 的信息架构，分开“资源 / 图层 / 调整”；图层管理顺序，对每个图片或文字容器调整内部属性。原导入栏目按 REQ-020 扩展为资源。</td><td>accepted · updated</td></tr>
             <tr><td>REQ-012</td><td>图片文字的底色和边框必须随文字整体旋转；底色容器支持内边距、边框类型、粗细、颜色和圆角。</td><td>accepted</td></tr>
             <tr><td>REQ-013</td><td>导入按钮缩小，并以每行三个的资源网格展示全部图片与文字容器。</td><td>accepted</td></tr>
             <tr><td>REQ-014</td><td>图层使用更克制的矩形轮廓；只在底部添加文字；相邻两张图片可横排在同一行并分别调整。</td><td>accepted</td></tr>
+            <tr><td>REQ-015</td><td>已导入资源作为独立附件库持久保存、可逐项删除；清除草稿保留资源。新增图片或文字保持当前栏目。</td><td>accepted</td></tr>
+            <tr><td>REQ-016</td><td>画布整体设置归属图层栏目；调整栏目顶部明确显示当前图层或双图对象。</td><td>accepted</td></tr>
+            <tr><td>REQ-017</td><td>长图预览使用结构化排版，图片、文字和双图行可点击进入局部放大，调整即时可见。</td><td>accepted</td></tr>
+            <tr><td>REQ-018</td><td>文字内容与格式、图片文字与位置样式同步保存到对应资源；清空草稿后再次加入仍可编辑，旧草稿中未同步的修改自动补回。</td><td>accepted</td></tr>
+            <tr><td>REQ-019</td><td>长图、封面和切图支持 HEIC / HEIF / HIF 图片，本地转换、保留文件名，显示读取状态。</td><td>accepted</td></tr>
+            <tr><td>REQ-020</td><td>导入栏目改为资源，统一添加、查看与 PNG / JPG 导出；排版长图保存为独立结构化资源，清空草稿保留。</td><td>accepted · verified</td></tr>
+            <tr><td>REQ-021</td><td>封面选择已保存的长图与单图，在完整图层边界插入封面并参数化增加留白；结果保存到资源，再从资源下载。</td><td>accepted · verified</td></tr>
+            <tr><td>REQ-022</td><td>图片文字弹窗中连续输入时保持文本框焦点和光标；属性更新不重新聚焦右上关闭按钮，Escape 仍可关闭。</td><td>accepted · verified</td></tr>
+            <tr><td>REQ-023</td><td>文字模块增加 emoji 输入；用户授权具体实现。文字卡片与图片文字共享选择器，按光标位置插入并随文字保存和导出。</td><td>accepted · verified</td></tr>
           </tbody>
         </table>
       </section>
@@ -73,12 +82,24 @@
         </div>
         <h3>实现截图</h3>
         <div class="gallery">
+          <figure class="direction"><img src="src/previews/editor-emoji-desktop.png" alt="文字内容框旁的 Emoji 分类选择器和带组合表情的长图预览"><figcaption><span class="label">Implementation capture</span><h3>文字 Emoji 输入</h3><p>1440×900；分类、搜索与最近使用内联展开，组合表情完整显示在文字卡片预览。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-emoji-mobile.png" alt="390像素图片文字编辑器中的 Emoji 选择器"><figcaption><span class="label">Implementation capture</span><h3>手机图片文字 Emoji</h3><p>390×844；44px 表情按钮、独立结果滚动和固定完成栏。图片为示例测试 SVG，emoji 由本机字体显示。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-unified-resources.png" alt="资源栏中的三列导入资源、PNG和JPG按钮及已保存长图"><figcaption><span class="label">Implementation capture</span><h3>统一资源与导出</h3><p>1440×900；资源可直接查看和导出，长图底部为保存动作。素材为本地测试 SVG。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-parametric-cover.png" alt="从已保存长图和单图生成封面，完整图层与留白参数可见"><figcaption><span class="label">Implementation capture</span><h3>结构化封面组合</h3><p>1440×900；插入位置、周围留白、取景和背景可调整，原图层完整保留。测试封面为纯色 SVG。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-parametric-cover-mobile.png" alt="手机封面界面的局部放大与底部导航"><figcaption><span class="label">Implementation capture</span><h3>手机封面查看</h3><p>390×844；先选择资源，再查看长图或局部封面；已验证放大后自动滚动与英语无横向溢出。</p></figcaption></figure>
           <figure class="direction"><img src="src/previews/editor-direction-2-implemented-layers.png" alt="方向二实现：桌面图层面板与中央画布"><figcaption><span class="label">Implementation capture</span><h3>图层工作区</h3><p>1440×900，工具轨、画布与图层面板独立分区。</p></figcaption></figure>
           <figure class="direction"><img src="src/previews/editor-direction-2-implemented-adjust.png" alt="方向二实现：图片容器调整面板"><figcaption><span class="label">Implementation capture</span><h3>图片容器调整</h3><p>容器高度、内部缩放与焦点位置直接驱动 Canvas。</p></figcaption></figure>
           <figure class="direction"><img src="src/previews/editor-direction-2-implemented-mobile.png" alt="方向二实现：390像素手机端底部工具栏"><figcaption><span class="label">Implementation capture</span><h3>手机重排</h3><p>390×844，竖向工具轨转为固定底部导航，画布仍优先。</p></figcaption></figure>
           <figure class="direction"><img src="src/previews/editor-direction-2-assets.png" alt="方向二实现：紧凑导入按钮和三列资源缩略图"><figcaption><span class="label">Implementation capture</span><h3>资源导入</h3><p>上传与文字按钮紧凑并列，已导入图片与文字容器按三列展示。</p></figcaption></figure>
           <figure class="direction"><img src="src/previews/editor-direction-2-two-photo-row-layers.png" alt="方向二实现：图层面板中的双图横排"><figcaption><span class="label">Implementation capture</span><h3>双图横排图层</h3><p>一行包含两个可独立选择的图片容器，底部集中新增与拆分动作。</p></figcaption></figure>
           <figure class="direction"><img src="src/previews/editor-direction-2-text-container.png" alt="图片文字编辑器中旋转的底色和虚线圆角边框"><figcaption><span class="label">Implementation capture</span><h3>文字容器几何</h3><p>文字、底色、内边距、圆角与边框作为整体旋转。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-resource-library.png" alt="独立附件库、单项删除与加入画布按钮"><figcaption><span class="label">Implementation capture</span><h3>独立资源库</h3><p>1440×900；清除草稿保留附件，加入画布生成独立图层。图中素材为本地测试 SVG。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-structured-focus.png" alt="双图行局部放大与当前子图片的调整栏目"><figcaption><span class="label">Implementation capture</span><h3>局部放大调整</h3><p>结构化预览可点击、返回和切换图层；对象标题显示图层编号与子图片编号。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-layer-canvas-settings.png" alt="图层栏目中的整体画布设置"><figcaption><span class="label">Implementation capture</span><h3>宏观画布设置</h3><p>整体设置归属图层栏目，对象属性归属调整栏目。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-resource-library-mobile.png" alt="390像素手机端独立资源库"><figcaption><span class="label">Implementation capture</span><h3>手机资源库</h3><p>三列附件与常显删除按钮，已检查无横向溢出。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-resource-edits.png" alt="图片文字摘要与编辑后的文字卡片同步显示在资源库"><figcaption><span class="label">Implementation capture</span><h3>编辑同步到资源</h3><p>1440×900；图片资源显示文字摘要，文字资源显示最新内容。字体、位置、边框等参数以结构化数据保留，清空草稿后再次加入可继续编辑。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-heic-import.png" alt="真实 HEIC 图片导入后添加文字并保存在资源库"><figcaption><span class="label">Implementation capture</span><h3>HEIC 本地导入</h3><p>1440×900；照片来自 libheif 官方 example.heic 测试样本，验证本地转换、文字编辑及资源重用。保留原文件名，解码模块按需加载。</p></figcaption></figure>
+          <figure class="direction"><img src="src/previews/editor-structured-mobile-en.png" alt="手机英语界面的结构化长图和对象调整栏目"><figcaption><span class="label">Implementation capture</span><h3>手机对象调整</h3><p>390×844 英语界面；顶部对象身份与子图片切换可见。</p></figcaption></figure>
         </div>
       </section>
 
@@ -89,8 +110,11 @@
           <tbody>
             <tr><td>DEC-001</td><td>采用方向 1，并将三栏在窄屏重排。</td><td>首版布局决策。</td><td>superseded</td></tr>
             <tr><td>DEC-002</td><td>使用 IndexedDB 保存图片 Blob 与草稿结构。</td><td>比 localStorage 更适合大图；无需服务器。</td><td>accepted</td></tr>
-            <tr><td>DEC-003</td><td>以 Canvas 2D 生成预览和下载结果，导出前显示尺寸与内存风险。</td><td>浏览器兼容性广，足以覆盖三种工具。</td><td>accepted</td></tr>
-            <tr><td>DEC-004</td><td>采用方向 2，并将右侧工作区拆为导入、图层、调整三个顶部菜单。</td><td>保留大画布，同时把对象选择与属性编辑的心智模型分开。</td><td>accepted</td></tr>
+            <tr><td>DEC-003</td><td>以 Canvas 2D 生成下载结果；长图预览由结构化排版与 HTML/SVG 构成。</td><td>按 REQ-017 更新：预览可交互，导出共享布局与裁切几何。</td><td>accepted · updated</td></tr>
+            <tr><td>DEC-004</td><td>采用方向 2，并将右侧工作区拆为资源、图层、调整三个顶部菜单。</td><td>保留大画布，同时把资源、对象选择与属性编辑的心智模型分开。</td><td>accepted · updated</td></tr>
+            <tr><td>DEC-005</td><td>附件删除只影响资源库，画布内容保留；点击资源可以重新添加独立图层。</td><td>区分资源与图层生命周期，避免误删已排版内容。</td><td>proposed · implemented as routine detail</td></tr>
+            <tr><td>DEC-006</td><td>长图和封面保存独立结构化快照；封面配方保留单图版本、完整图层、取景、插入边界与留白参数。</td><td>实现 REQ-020 / 021 的先保存后导出流程，删除素材不会破坏已保存结果，封面无需切开原图。</td><td>accepted · verified</td></tr>
+            <tr><td>DEC-007</td><td>在文字框旁提供可展开的 Emoji 面板，含分类、中英搜索与最近使用；插入后回到文字框。使用内置 Unicode 表情清单，共享排版按字素换行。</td><td>常用表情可直接找到，不增加网络依赖；内联展开避免属性栏和图片文字弹窗裁切浮层；原生表情显示遵循设备字体。</td><td>agent implementation choice · verified</td></tr>
           </tbody>
         </table>
       </section>
@@ -102,27 +126,42 @@
           <tbody>
             <tr><td>REQ-001 / DEC-002</td><td>verified</td><td>浏览器上传、刷新恢复 2 个内容块；IndexedDB 草稿代码已检查</td><td>无</td></tr>
             <tr><td>REQ-002 / REQ-008 / DEC-003</td><td>verified</td><td>浏览器实测图片文字弹窗、自由坐标、方向键微调、文本框宽度和长图预览；生产构建通过</td><td>无</td></tr>
-            <tr><td>REQ-003</td><td>verified</td><td>浏览器实测方形裁切、长图中部插入与合成预览</td><td>无</td></tr>
+            <tr><td>REQ-003</td><td>superseded</td><td>扁平长图切开插入的旧实现已移除，由 REQ-021 的结构化图层组合取代</td><td>无</td></tr>
             <tr><td>REQ-004</td><td>verified</td><td>4 / 6 / 9 几何单测；浏览器确认 4 图为 2×2 预览和下载顺序</td><td>浏览器首次批量下载时可能要求授权</td></tr>
             <tr><td>REQ-005 / REQ-010 / DEC-004</td><td>verified</td><td>1440×900 桌面与 390×844 手机实现截图；简中和英语均无横向溢出</td><td>真实旅行照片最终内容验收</td></tr>
             <tr><td>REQ-006</td><td>verified</td><td>桌面页面固定为视口高度；中央画布与右侧属性内容分别拥有滚动边界</td><td>无</td></tr>
             <tr><td>REQ-007</td><td>superseded</td><td>方向 2 将添加、图层顺序与调整整合进右侧菜单</td><td>无</td></tr>
             <tr><td>REQ-009</td><td>verified</td><td>三份强类型语言文件覆盖工具、弹窗、状态、无障碍文案、页面元数据和下载文件名；语言本地持久化；12 项测试和生产构建通过</td><td>真实设备最终内容验收</td></tr>
-            <tr><td>REQ-011</td><td>verified</td><td>浏览器实测三菜单切换、图层选择、图片容器 100%→50% 后 Canvas 高度 398→199；预览与导出共享同一渲染函数</td><td>无</td></tr>
+            <tr><td>REQ-011</td><td>verified</td><td>浏览器实测三菜单切换和图层选择；预览与导出改为共享结构化布局，整体画布设置归属图层栏目，对象属性归属调整栏目</td><td>无</td></tr>
             <tr><td>REQ-012</td><td>verified</td><td>浏览器实测 10° 旋转、虚线边框、20px 圆角和 42px 内边距；弹窗与完成后的 Canvas 预览均整体旋转</td><td>无</td></tr>
             <tr><td>REQ-013</td><td>verified</td><td>1440×900 与 390×844 均显示三列资源格；无横向溢出</td><td>无</td></tr>
             <tr><td>REQ-014</td><td>verified</td><td>浏览器创建双图横排、选择单个子图片、调整行高与间距并可拆分；图层列表仅底部保留新增动作</td><td>无</td></tr>
+            <tr><td>REQ-015</td><td>verified</td><td>真实 IndexedDB 检查附件删除保留图层、清草稿保留附件、刷新恢复、v1 升级及空资源库不被草稿重新填充；assetLibrary.ts 单测</td><td>浏览器存储被手动清理时附件仍会丢失</td></tr>
+            <tr><td>REQ-016</td><td>verified</td><td>浏览器检查画布设置仅在图层栏目；调整标题分别显示双图行与图片 1/2；新增操作保持当前栏目</td><td>无</td></tr>
+            <tr><td>REQ-017 / DEC-003</td><td>verified</td><td>StitchPreview.tsx 与 stitchLayout.ts；预览中没有 canvas；局部选择、键盘滑杆、Escape、实际图片下载及导出尺寸与布局一致；1440×900 与 390×844 截图；23 项单测</td><td>真实手机触屏操作仍待最终设备验收</td></tr>
+            <tr><td>REQ-018</td><td>verified</td><td>28 项单测与生产构建通过；真实 IndexedDB 验证文字内容及格式、图片文字完整参数、刷新、清空重用、双图子图片、删除文字与资源、旧草稿恢复及已有副本独立，共 11 个浏览器场景；无浏览器错误；桌面和 390px 手机截图已检查。</td><td>旧版多个不同副本缺少编辑时间，首次补回使用画布顺序中最后一个修改过的副本；新编辑按最后操作保存</td></tr>
+            <tr><td>REQ-019</td><td>verified</td><td>34 项单测与生产构建通过；官方 example.heic 样本在 Edge 生产预览验证长图、封面、4 宫格导出、PNG 资源保存、刷新和清空重用、空 MIME / 通用 MIME、读取状态及坏文件恢复，共 12 个浏览器场景。正常图片不加载解码包，所有请求均同源，无页面错误。</td><td>多图容器导入首张静态图；PNG 资源不保存拍摄元数据和 HDR / 动态内容；解码包首次按需加载约 3.19 MB（gzip 约 792 KB）</td></tr>
+            <tr><td>REQ-020 / DEC-006</td><td>verified</td><td>39 项单测与生产构建通过；20 个生产浏览器场景覆盖资源查看、PNG / JPG 下载、文字格式、独立快照、刷新、继续排版、清草稿、删除素材与长图、HEIC 资源导出及存储读取失败；无页面错误。</td><td>仅当前浏览器持久化；清除站点数据会移除资源</td></tr>
+            <tr><td>REQ-021 / DEC-006</td><td>verified</td><td>完整图层边界与居中几何 5 项新增单测；浏览器验证插入位置、留白、封面参数恢复、原素材删除后的独立导出。实际 PNG 为 1080×2421，中心方形内 15 个采样点均为指定封面颜色；桌面、390px 手机及英语检查通过。</td><td>真实手机触屏和微信客户端缩略图行为仍待设备验收</td></tr>
+            <tr><td>REQ-022</td><td>verified</td><td>修复前浏览器复现首个字符令关闭按钮获得焦点。PhotoTextEditorModal.tsx 将仅打开时的焦点初始化与 Escape 监听分离；Edge 开发预览在 1440px / 390px 验证逐键输入、中文插入、模拟 composition 事件、光标中间插入、连续滑杆和文字框方向键、Escape、重开、刷新与资源文字持久化；无页面错误，生产构建通过。</td><td>自动化模拟浏览器 composition 事件，未控制真实系统输入法</td></tr>
+            <tr><td>REQ-023 / DEC-007</td><td>verified</td><td>44 项单测及生产构建通过；新增 5 项测试覆盖 UTF-16 光标插入、选区替换、组合字素保护、共享换行和跨语言搜索。10 个 Edge 开发浏览器场景验证插入后继续输入、分类与空搜索、最近使用刷新、真实 IndexedDB、图片文字焦点回归、Escape、三语、390px 控件与无溢出；实际 PNG 检出 2965 个红色表情像素，无页面错误。</td><td>常用清单不覆盖 Unicode 全集，其他表情可粘贴或系统输入；设备字体决定外观，真实手机软键盘仍待设备验收</td></tr>
           </tbody>
         </table>
       </section>
 
       <section aria-labelledby="pending">
         <h2 id="pending">待确认</h2>
-        <div class="note"><strong>交付状态：</strong>方向 2、右侧 Adobe 式菜单和容器内部调整均已实现并完成桌面/手机自动化检查。用户可在真实旅行照片上进行最终内容验收。</div>
+        <div class="note"><strong>交付状态：</strong>资源统一查看和导出，长图与封面保存独立结构化快照；封面按完整图层组合并平衡留白。文字新增 Emoji 分类、搜索、最近使用及光标插入。当前 44 项单测、生产构建和 Emoji 的 10 个开发浏览器场景通过；先前 20 个资源/封面生产浏览器场景保留为已验证证据。真实手机软键盘与触屏、微信缩略图和用户 iPhone 原图仍可进行设备与内容验收。</div>
       </section>
 
       <section aria-labelledby="log">
         <h2 id="log">变更记录</h2>
+        <p><strong>2026-10-09</strong> — 文字卡片与图片文字共享 Emoji 选择器：内置五类常用表情，支持中英搜索、最近使用、光标插入和选区替换，插入后恢复焦点。Emoji 以文字保存，预览和导出按字素换行，避免拆开组合序列；不增加依赖或网络请求。44 项单测、生产构建和 10 个开发浏览器场景通过，桌面与手机截图已检查，实际 PNG 彩色表情已核对。</p>
+        <p><strong>2026-10-08</strong> — 修复图片文字输入失焦：父组件每次编辑生成新的 onClose，导致带焦点初始化的 effect 重跑。初始化改为仅挂载时执行，Escape 监听单独跟随回调更新。桌面和手机浏览器连续输入、光标、属性键盘调节及保存恢复验证通过；生产构建通过。</p>
+        <p><strong>2026-10-08</strong> — 按用户新要求将导入升级为资源，增加结构化查看与 PNG / JPG 直接导出；长图下载改为保存独立快照。重写封面为已保存长图加单图，在完整图层之间插入正方形并参数化留白，结果保存到资源后下载；原素材删除后仍可导出与调整。新增共享 coverLayout.ts、资源库 hook 与快照记录，修复查看弹窗 Escape 和手机聚焦滚动。39 项单测、生产构建、20 个生产浏览器场景通过；检查桌面与手机截图及实际导出中心像素。</p>
+        <p><strong>2026-10-08</strong> — 增加共享 imageImport.ts，用 heic-to 1.6.5 的 CSP 构建按需解码 HEIC / HEIF / HIF，浏览器本地转换为 PNG 后进入三个工具的统一预览、编辑与导出流程。文件选择器增加扩展名和 MIME，缺失类型时检查文件头并避免将 AVIF 误判为 HEIF；上传显示读取状态。34 项单测与生产构建通过，官方 HEIC 样本的 12 个浏览器场景通过；许可证与源码链接随静态产物提供。</p>
+        <p><strong>2026-10-08</strong> — 修复图层编辑未回写资源的问题：文字内容与全部格式、图片裁切和文字叠加数据同步为最新资源模板，资源卡片增加图片文字摘要。首次读取旧数据时恢复未同步的编辑，并标记版本以免后续刷新被旧副本覆盖。已有图层副本保持独立，明确删除的资源不自动重建。28 项单测、生产构建和 11 个浏览器场景通过。</p>
+        <p><strong>2026-10-08</strong> — 按用户明确的新交互要求，将资源库从图层派生列表改为独立 IndexedDB 数据；全局画布设置移到图层，调整栏目增加对象身份。长图改为共享布局数据驱动的 HTML/SVG 交互预览，支持局部放大。23 项单测和浏览器 13 个场景通过；检查桌面和手机截图后一次批量修正留白、选中边框与分组间距。Impeccable 加载器不可用，沿用现有方向 2 并完成手动界面检查。</p>
         <p><strong>2026-10-08</strong> — 修复图片文字底色未随文字旋转；新增内边距、边框类型/粗细/颜色和圆角。导入面板改为紧凑按钮与三列资源格；图层改为小圆角矩形，只在底部添加文字，并新增双图横排、独立裁切与拆分。16 项测试、生产构建与桌面/手机自动化验收通过。</p>
         <p><strong>2026-10-08</strong> — 用户将视觉方向改为方向 2；实现青色工具轨、项目栏、中央画布与右侧专业工作区。右栏拆分为导入、图层、调整，新增图片容器高度、内部缩放与焦点位置控制；桌面、390px 手机、英语文案和 Canvas 联动验证通过。</p>
         <p><strong>2026-10-08</strong> — 接入简中、繁中与英语三语界面；文案集中到强类型语言文件；语言选择写入本地存储并同步页面语言和元数据；新增国际化单测，12 项测试与生产构建通过。</p>

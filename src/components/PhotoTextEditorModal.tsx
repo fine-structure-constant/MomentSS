@@ -38,13 +38,19 @@ export function PhotoTextEditorModal({ photo, overlay, onChange, onClose, onRemo
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    // Initialize focus once; editing recreates the parent's onClose callback.
     closeRef.current?.focus()
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [])
+
+  useEffect(() => {
     const handleEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleEscape)
     return () => {
-      document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', handleEscape)
     }
   }, [onClose])
