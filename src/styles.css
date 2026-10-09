@@ -692,3 +692,79 @@ input[type="range"] { accent-color: var(--navy); }
   .cover-composer__stage { scroll-margin-top: 60px; }
   .cover-composer__stage:has(.is-focused) { max-height: none; overflow: visible; }
 }
+
+/* Interaction pass: reversible actions, resource discovery, explicit crop affordances. */
+.status-toast__action { display: inline-flex; min-height: 32px; flex-shrink: 0; align-items: center; gap: 5px; margin-left: 4px; padding: 4px 10px; border: 1px solid rgba(255,255,255,.45); border-radius: 8px; color: #fff; background: rgba(255,255,255,.12); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.status-toast__action:hover { background: rgba(255,255,255,.24); }
+
+.modal-backdrop--confirm { z-index: 120; }
+.confirm-dialog { width: min(420px, calc(100vw - 32px)); padding: 22px; border-radius: 14px; background: var(--paper); box-shadow: 0 28px 80px rgba(8, 23, 42, .3); animation: modal-panel-in 200ms cubic-bezier(.16,1,.3,1); }
+.confirm-dialog__head { display: flex; align-items: center; gap: 9px; }
+.confirm-dialog__head h2 { margin: 0; font-size: 17px; letter-spacing: -.01em; }
+.confirm-dialog__mark { display: grid; width: 30px; height: 30px; flex-shrink: 0; place-items: center; border-radius: 8px; color: var(--coral-dark); background: var(--coral-pale); }
+.confirm-dialog p { margin: 12px 0 20px; color: #3c4a5c; font-size: 13px; line-height: 1.65; }
+.confirm-dialog__actions { display: flex; justify-content: flex-end; gap: 8px; }
+.confirm-dialog__actions button { min-width: 96px; }
+
+.field__note { margin: 6px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.range-field.is-disabled { opacity: .55; }
+.range-field.is-disabled .field__label output { color: var(--muted); }
+input[type="range"]:disabled { cursor: not-allowed; }
+
+.crop-editor__preview.is-pannable, .photo-text-preview.is-pannable { cursor: grab; touch-action: none; }
+.crop-editor__preview.is-pannable:active, .photo-text-preview.is-pannable:active { cursor: grabbing; }
+.crop-editor__hint, .photo-text-preview__hint { position: absolute; bottom: 10px; left: 10px; padding: 5px 9px; border-radius: 999px; color: #fff; background: rgba(16,34,61,.72); font-size: 11px; pointer-events: none; }
+.crop-editor__hint { bottom: auto; top: 10px; }
+
+.resource-toolbar { display: grid; gap: 8px; margin: 16px 0 4px; }
+.search-field { display: flex; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; color: var(--muted); }
+.search-field input { width: 100%; min-width: 0; min-height: 40px; padding: 0; border: 0; color: var(--ink); background: transparent; font: inherit; font-size: 13px; }
+.search-field input:focus-visible { outline: none; }
+.search-field:focus-within { border-color: var(--navy); }
+.search-field__clear { flex-shrink: 0; padding: 4px 6px; border: 0; color: var(--navy); background: transparent; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.resource-filters { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.resource-kind { flex: 1; min-width: 0; }
+.resource-kind button, .resource-columns button { min-width: 0; height: 34px; font-size: 11px; font-weight: 700; }
+.resource-kind button { flex: 1; }
+.resource-columns button { width: 32px; }
+.resource-toolbar__count { margin: 0; color: var(--muted); font-size: 11px; }
+
+.asset-library-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.section-toggle { display: flex; min-height: 32px; align-items: center; gap: 5px; padding: 0; border: 0; color: inherit; background: transparent; font: inherit; cursor: pointer; }
+.section-toggle svg { flex-shrink: 0; transition: transform 140ms ease; }
+.section-toggle svg.is-collapsed { transform: rotate(-90deg); }
+.section-toggle h3 { margin: 0; font-size: 14px; letter-spacing: -.01em; }
+.asset-library-head p { margin: 0; }
+
+.rename-field { display: flex; min-width: 0; align-items: center; gap: 4px; padding: 4px 4px 4px 6px; }
+.rename-field__input { width: 100%; min-width: 0; min-height: 30px; padding: 0 5px; border: 1px solid var(--navy); border-radius: 5px; color: var(--ink); background: #fff; font: inherit; font-size: 11px; }
+.rename-field__save { flex-shrink: 0; min-height: 30px; padding: 0 7px; border: 0; border-radius: 5px; color: #fff; background: var(--navy); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.asset-tile__caption { grid-template-columns: minmax(0, 1fr) auto; }
+.asset-tile__tools { display: flex; }
+.asset-tile__tools button { width: 30px; min-height: 30px; cursor: pointer; }
+.composition-card__title { display: flex; min-width: 0; align-items: center; gap: 2px; }
+.composition-card__title .asset-tile__name { padding: 0; }
+.icon-button--tiny { width: 28px; height: 28px; flex-shrink: 0; border: 0; border-radius: 6px; }
+.composition-card__title .rename-field { flex: 1; }
+
+.sequence-row { display: grid; gap: 0; }
+.sequence-item.is-pair-anchor { border-color: var(--navy); background: var(--pool-pale); }
+.sequence-item.is-pair-target { border-style: dashed; border-color: var(--coral); cursor: crosshair; }
+.pair-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; padding: 9px 11px; border: 1px solid var(--coral); border-radius: 8px; color: var(--coral-dark); background: var(--coral-pale); font-size: 12px; line-height: 1.5; }
+.pair-banner .text-button { flex-shrink: 0; }
+
+.studio-sidebar__footer { grid-template-columns: 1fr; gap: 8px; }
+.save-target { margin: 0; overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.save-actions { display: flex; gap: 8px; }
+.save-actions .primary-button { flex: 1; }
+.save-actions .secondary-button { flex-shrink: 0; }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .search-field input { min-height: 44px; font-size: 16px; }
+  .resource-kind button, .resource-columns button { height: 44px; }
+  .resource-columns button { width: 44px; }
+  .asset-tile__tools button { width: 44px; min-height: 44px; }
+  .rename-field__input, .rename-field__save { min-height: 44px; }
+  .icon-button--tiny { width: 44px; height: 44px; }
+  .status-toast__action { min-height: 40px; }
+}

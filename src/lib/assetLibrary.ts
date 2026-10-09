@@ -1,5 +1,18 @@
-import type { ComposerBlock, ImportedAsset } from '../types'
+import type { ComposerBlock, ImportedAsset, TextBlock } from '../types'
 import { flattenComposerAssets } from './composer'
+
+const TEXT_STYLE_KEYS: Array<keyof TextBlock> = [
+  'text', 'color', 'background', 'fontFamily', 'fontSize', 'fontWeight', 'italic', 'align', 'rotation', 'lineHeight', 'padding',
+]
+
+/**
+ * Reuses an identical text card instead of appending another one, so repeatedly adding
+ * a default card no longer grows the resource library with indistinguishable entries.
+ */
+export function findTextAsset(assets: ImportedAsset[], candidate: TextBlock): TextBlock | null {
+  return assets.find((asset): asset is TextBlock => asset.type === 'text'
+    && TEXT_STYLE_KEYS.every((key) => asset[key] === candidate[key])) ?? null
+}
 
 export function createLayerFromAsset(asset: ImportedAsset): ImportedAsset {
   const id = `layer-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
