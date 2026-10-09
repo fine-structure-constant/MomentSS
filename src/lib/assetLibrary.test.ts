@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createLayerFromAsset, recoverEditedAssets, recoverImportedAssets, saveEditedAsset } from './assetLibrary'
-import { findComposerAsset, pairPhotoWithNeighbor, removeAssetFromBlocks, updatePhotoInBlocks } from './composer'
+import { findComposerAsset, pairPhotoWithNext, removeAssetFromBlocks, updatePhotoInBlocks } from './composer'
 import { createPhotoOverlay, createTextBlock } from './defaults'
 import type { PhotoBlock, TextBlock } from '../types'
 
@@ -24,7 +24,7 @@ describe('independent asset library', () => {
   it('recovers old drafts including nested photos, deduplicating later source references', () => {
     const first = createLayerFromAsset(photo)
     const second = { ...createLayerFromAsset(photo), sourceId: 'another-source' }
-    const paired = pairPhotoWithNeighbor([first, second], first.id).blocks
+    const paired = pairPhotoWithNext([first, second], first.id).blocks
     const recovered = recoverImportedAssets([...paired, createLayerFromAsset(photo), createTextBlock('记录')])
     expect(recovered).toHaveLength(3)
     expect(recovered.map((asset) => asset.id)).toContain('source')
@@ -69,7 +69,7 @@ describe('independent asset library', () => {
     const editedText = { ...createLayerFromAsset(originalText), text: '已编辑的文字' } as TextBlock
     const first = createLayerFromAsset(photo) as PhotoBlock
     const second = createLayerFromAsset(photo) as PhotoBlock
-    const paired = pairPhotoWithNeighbor([first, second], first.id).blocks
+    const paired = pairPhotoWithNext([first, second], first.id).blocks
     const blocks = updatePhotoInBlocks(paired, first.id, { overlay: createPhotoOverlay('未同步的图片文字') })
     const repaired = recoverEditedAssets([photo, originalText], [...blocks, editedText, createLayerFromAsset(originalText)])
     expect(repaired[0]).toMatchObject({ id: photo.id, overlay: { text: '未同步的图片文字' } })

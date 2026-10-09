@@ -4,13 +4,16 @@ import {
   pickOverlayStyle,
   pickTextStyle,
   readOverlayStylePreset,
+  readResourceView,
   readTextStylePreset,
   rememberOverlayStyle,
+  rememberResourceView,
   rememberTextStyle,
 } from './preferences'
 
 const TEXT_STYLE_KEY = 'liubai-text-style'
 const OVERLAY_STYLE_KEY = 'liubai-overlay-style'
+const RESOURCE_VIEW_KEY = 'liubai-resource-view'
 const store = new Map<string, string>()
 const globals = globalThis as Record<string, unknown>
 const originalWindow = globals.window
@@ -83,12 +86,33 @@ describe('remembered overlay styling', () => {
   })
 })
 
+describe('remembered resource view', () => {
+  it('keeps the active kind filter and column count across a panel remount', () => {
+    rememberResourceView({ kind: 'photo', columns: 4 })
+    expect(readResourceView()).toEqual({ kind: 'photo', columns: 4 })
+  })
+
+  it('drops a kind or column count the panel cannot render', () => {
+    store.set(RESOURCE_VIEW_KEY, JSON.stringify({ kind: 'video', columns: 7 }))
+    expect(readResourceView()).toBeNull()
+    store.set(RESOURCE_VIEW_KEY, JSON.stringify({ kind: 'collage', columns: 7 }))
+    expect(readResourceView()).toEqual({ kind: 'collage' })
+  })
+
+  it('persists only the known view keys', () => {
+    rememberResourceView({ kind: 'text' })
+    expect(JSON.parse(store.get(RESOURCE_VIEW_KEY) ?? '{}')).toEqual({ kind: 'text' })
+  })
+})
+
 describe('without browser storage', () => {
   it('reads nothing and writes nothing instead of throwing', () => {
     delete globals.window
     expect(() => rememberTextStyle(createTextBlock(''))).not.toThrow()
     expect(() => rememberOverlayStyle(createPhotoOverlay(''))).not.toThrow()
+    expect(() => rememberResourceView({ kind: 'text', columns: 2 })).not.toThrow()
     expect(readTextStylePreset()).toBeNull()
     expect(readOverlayStylePreset()).toBeNull()
+    expect(readResourceView()).toBeNull()
   })
 })

@@ -3,8 +3,7 @@ import {
   findComposerAsset,
   insertBlockAfter,
   moveBlockToEdge,
-  pairPhotoWithNeighbor,
-  pairPhotos,
+  pairPhotoWithNext,
   removeAssetFromBlocks,
   renamePhotosInBlocks,
   splitPhotoRow,
@@ -19,58 +18,42 @@ const photo = (id: string): PhotoBlock => ({ id, type: 'photo', name: id, blob: 
 const portrait = (id: string): PhotoBlock => ({ id, type: 'photo', name: id, blob: new Blob(), width: 800, height: 1200 })
 
 describe('photo rows', () => {
-  it('pairs two adjacent photos without changing their order', () => {
-    const result = pairPhotoWithNeighbor([photo('a'), photo('b')], 'b')
+  it('pairs a photo with the layer directly below it without changing their order', () => {
+    const result = pairPhotoWithNext([photo('a'), photo('b')], 'a')
     expect(result.row?.photos.map((item) => item.id)).toEqual(['a', 'b'])
     expect(result.blocks).toHaveLength(1)
   })
 
+  it('only pairs downwards, so the row lands where the two layers already were', () => {
+    expect(pairPhotoWithNext([photo('a'), photo('b')], 'b').row).toBeNull()
+    expect(pairPhotoWithNext([photo('a'), photo('b')], 'missing').row).toBeNull()
+    expect(pairPhotoWithNext([photo('a'), createTextBlock('标题')], 'a').row).toBeNull()
+    const result = pairPhotoWithNext([photo('a'), photo('b'), createTextBlock('尾注')], 'a')
+    expect(result.blocks.map((block) => block.type)).toEqual(['photo-row', 'text'])
+  })
+
   it('keeps each nested photo independently editable', () => {
-    const row = pairPhotoWithNeighbor([photo('a'), photo('b')], 'a').blocks
+    const row = pairPhotoWithNext([photo('a'), photo('b')], 'a').blocks
     const updated = updatePhotoInBlocks(row, 'b', { cropZoom: 2 })
     expect(findComposerAsset(updated, 'b')).toMatchObject({ cropZoom: 2 })
     expect(findComposerAsset(updated, 'a')).not.toHaveProperty('cropZoom')
   })
 
   it('promotes the remaining photo when one cell is deleted', () => {
-    const row = pairPhotoWithNeighbor([photo('a'), photo('b')], 'a').blocks
+    const row = pairPhotoWithNext([photo('a'), photo('b')], 'a').blocks
     expect(removeAssetFromBlocks(row, 'a')).toEqual([photo('b')])
   })
 
   it('splits a row back into two vertical layers', () => {
-    const paired = pairPhotoWithNeighbor([photo('a'), photo('b')], 'a')
+    const paired = pairPhotoWithNext([photo('a'), photo('b')], 'a')
     const blocks: ComposerBlock[] = splitPhotoRow(paired.blocks, paired.row!.id)
     expect(blocks.map((block) => block.id)).toEqual(['a', 'b'])
   })
 })
 
-describe('choosing which photos go side by side', () => {
-  it('pairs two non-adjacent photos and keeps the other layers untouched', () => {
-    const text = createTextBlock('标题')
-    const blocks: ComposerBlock[] = [photo('a'), text, photo('b')]
-    const result = pairPhotos(blocks, 'a', 'b')
-    expect(result.blocks).toHaveLength(2)
-    expect(result.blocks[0]).toBe(result.row)
-    expect(result.blocks[1]).toBe(text)
-    expect(result.row?.photos.map((item) => item.id)).toEqual(['a', 'b'])
-  })
-
-  it('places the row where the earlier photo was, whatever the click order', () => {
-    const text = createTextBlock('标题')
-    const result = pairPhotos([text, photo('a'), photo('b')], 'b', 'a')
-    expect(result.blocks.map((block) => block.type)).toEqual(['text', 'photo-row'])
-    expect(result.row?.photos.map((item) => item.id)).toEqual(['a', 'b'])
-  })
-
-  it('refuses ids that are the same, unknown, or already inside a row', () => {
-    const row = pairPhotoWithNeighbor([photo('a'), photo('b')], 'a').blocks
-    expect(pairPhotos([photo('a')], 'a', 'a').row).toBeNull()
-    expect(pairPhotos([photo('a')], 'a', 'missing').row).toBeNull()
-    expect(pairPhotos(row, 'a', 'a').row).toBeNull()
-  })
-
+describe('row internals', () => {
   it('swaps the two cells of a row without touching anything else', () => {
-    const paired = pairPhotoWithNeighbor([photo('a'), photo('b')], 'a')
+    const paired = pairPhotoWithNext([photo('a'), photo('b')], 'a')
     const swapped = swapRowPhotos(paired.blocks, paired.row!.id)
     expect(swapped[0].type === 'photo-row' && swapped[0].photos.map((item) => item.id)).toEqual(['b', 'a'])
   })

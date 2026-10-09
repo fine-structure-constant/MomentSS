@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildStitchLayout, layoutPhotoOverlay, wrapLayoutText, type TextMeasure } from './stitchLayout'
 import { createPhotoOverlay, createTextBlock, DEFAULT_SETTINGS } from './defaults'
-import { pairPhotoWithNeighbor } from './composer'
+import { pairPhotoWithNext } from './composer'
 import type { PhotoBlock } from '../types'
 
 const photo = (id: string): PhotoBlock => ({ id, type: 'photo', name: id, blob: new Blob(), width: 1200, height: 800 })
@@ -17,7 +17,7 @@ describe('shared structured collage layout', () => {
   })
 
   it('keeps row geometry and each photo crop independent', () => {
-    const paired = pairPhotoWithNeighbor([photo('a'), { ...photo('b'), cropZoom: 2 }], 'a')
+    const paired = pairPhotoWithNext([photo('a'), { ...photo('b'), cropZoom: 2 }], 'a')
     const row = { ...paired.row!, gap: 40, heightRatio: 50 }
     const layout = buildStitchLayout([row], DEFAULT_SETTINGS, measure)
     expect(layout.items[0].height).toBe(540)

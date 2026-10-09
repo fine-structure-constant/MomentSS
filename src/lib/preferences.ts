@@ -7,9 +7,17 @@ import type { PhotoOverlay, TextAlign, TextAppearance } from '../types'
  */
 const TEXT_STYLE_KEY = 'liubai-text-style'
 const OVERLAY_STYLE_KEY = 'liubai-overlay-style'
+const RESOURCE_VIEW_KEY = 'liubai-resource-view'
 
 export type TextStylePreset = Pick<TextAppearance, 'color' | 'background' | 'fontFamily' | 'fontSize' | 'fontWeight' | 'italic' | 'align' | 'rotation' | 'lineHeight'>
 export type OverlayStylePreset = TextStylePreset & Pick<PhotoOverlay, 'width' | 'backgroundOpacity' | 'boxPadding' | 'borderStyle' | 'borderWidth' | 'borderColor' | 'borderRadius'>
+
+/** The resource panel unmounts when another tab is opened, so its view mode is stored here. */
+export type ResourceKind = 'all' | 'photo' | 'text' | 'collage'
+export interface ResourceViewPreset {
+  kind: ResourceKind
+  columns: number
+}
 
 const ALIGNMENTS: TextAlign[] = ['left', 'center', 'right']
 const BORDER_STYLES: NonNullable<PhotoOverlay['borderStyle']>[] = ['none', 'solid', 'dashed', 'dotted']
@@ -50,6 +58,14 @@ const OVERLAY_FIELDS: Array<[keyof OverlayStylePreset, Validator]> = [
   ['borderWidth', bounded(0, 64)],
   ['borderColor', (value) => isText(value) && /^#[0-9a-f]{6}$/i.test(value as string)],
   ['borderRadius', bounded(0, 400)],
+]
+
+export const RESOURCE_KINDS: ResourceKind[] = ['all', 'photo', 'text', 'collage']
+export const RESOURCE_COLUMNS = [2, 3, 4]
+
+const RESOURCE_VIEW_FIELDS: Array<[keyof ResourceViewPreset, Validator]> = [
+  ['kind', oneOf(RESOURCE_KINDS)],
+  ['columns', oneOf(RESOURCE_COLUMNS)],
 ]
 
 function pick<T extends object>(raw: string | null, fields: Array<[keyof T, Validator]>): Partial<T> | null {
@@ -122,4 +138,13 @@ export function rememberTextStyle(style: Partial<TextAppearance>): void {
 export function rememberOverlayStyle(style: Partial<PhotoOverlay>): void {
   const preset = pickOverlayStyle(style)
   if (Object.keys(preset).length) write(OVERLAY_STYLE_KEY, preset)
+}
+
+export function readResourceView(): Partial<ResourceViewPreset> | null {
+  return pick<ResourceViewPreset>(read(RESOURCE_VIEW_KEY), RESOURCE_VIEW_FIELDS)
+}
+
+export function rememberResourceView(view: Partial<ResourceViewPreset>): void {
+  const preset = project<ResourceViewPreset>(view, RESOURCE_VIEW_FIELDS)
+  if (Object.keys(preset).length) write(RESOURCE_VIEW_KEY, preset)
 }

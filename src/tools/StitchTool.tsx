@@ -5,6 +5,7 @@ import {
   ChevronsUp,
   Columns2,
   CopyPlus,
+  FoldVertical,
   GripVertical,
   Image as ImageIcon,
   ImagePlus,
@@ -16,7 +17,6 @@ import {
   SlidersHorizontal,
   Trash2,
   Type,
-  X,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { filesToPhotoBlocks } from '../lib/canvas'
@@ -29,8 +29,7 @@ import {
   flattenComposerAssets,
   insertBlockAfter,
   moveBlockToEdge,
-  pairPhotoWithNeighbor,
-  pairPhotos,
+  pairPhotoWithNext,
   removeAssetFromBlocks,
   renamePhotosInBlocks,
   splitPhotoRow,
@@ -89,7 +88,6 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   const [photoEditorId, setPhotoEditorId] = useState<string | null>(null)
   const [panelTab, setPanelTab] = useState<'import' | 'layers' | 'adjust'>('import')
   const [focusedId, setFocusedId] = useState<string | null>(null)
-  const [pairAnchorId, setPairAnchorId] = useState<string | null>(null)
   const [sourceCompositionId, setSourceCompositionId] = useState<string | null>(null)
   const [textPreset, setTextPreset] = useState<Partial<TextStylePreset>>({})
   const [overlayPreset, setOverlayPreset] = useState<Partial<OverlayStylePreset>>({})
@@ -184,13 +182,6 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     if (window.matchMedia('(max-width: 900px)').matches) stageRef.current?.scrollIntoView({ block: 'start' })
   }, [focusedId])
 
-  useEffect(() => {
-    if (!pairAnchorId) return
-    const cancel = (event: KeyboardEvent) => { if (event.key === 'Escape') setPairAnchorId(null) }
-    window.addEventListener('keydown', cancel)
-    return () => window.removeEventListener('keydown', cancel)
-  }, [pairAnchorId])
-
   const handleFiles = async (files: File[]) => {
     try {
       const photos = await filesToPhotoBlocks(files)
@@ -222,7 +213,6 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     })
     setSelectedId(layer.id)
     setFocusedId(null)
-    setPairAnchorId(null)
     setPanelTab('layers')
   }
 
@@ -232,6 +222,23 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     setSelectedId(layer.id)
     setFocusedId(null)
     onToast({ text: t('stitch.assetAdded'), tone: 'success' })
+  }
+
+  /**
+   * Selecting a resource means selecting the layer it came from, so the adjust tab can edit it.
+   * A resource that is not on the canvas has nothing to adjust yet.
+   */
+  const selectAssetOnCanvas = (asset: ImportedAsset) => {
+    const layer = blocks.find((block) => (block.type === 'photo' || block.type === 'text') && (block.sourceId ?? block.id) === asset.id)
+    const row = blocks.find((block) => block.type === 'photo-row' && block.photos.some((photo) => (photo.sourceId ?? photo.id) === asset.id))
+    const target = layer?.id ?? (row?.type === 'photo-row' ? row.photos.find((photo) => (photo.sourceId ?? photo.id) === asset.id)?.id : undefined)
+    if (!target) {
+      onToast({ text: t('resource.notOnCanvas', { name: asset.type === 'photo' ? asset.name : asset.text || t('stitch.blankText') }), tone: 'info' })
+      return
+    }
+    setSelectedId(target)
+    setFocusedId(null)
+    setPanelTab('adjust')
   }
 
   const inspectPart = (id: string, focusId: string) => {
@@ -317,44 +324,24 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     setPhotoEditorId(null)
   }
 
-  const pairSelectedPhoto = () => {
-    if (!selected || selected.type !== 'photo' || selectedRow) {
-      onToast({ text: t('stitch.pairNeedsPhoto'), tone: 'info' })
-      return
-    }
-    // One click when a photo already sits beside it; otherwise ask for the second photo.
-    const neighbour = pairPhotoWithNeighbor(blocks, selected.id)
-    if (neighbour.row) {
-      setBlocks(neighbour.blocks)
-      setSelectedId(selected.id)
-      onToast({ text: t('stitch.paired'), tone: 'success' })
-      return
-    }
-    setPairAnchorId(selected.id)
-    onToast({ text: t('stitch.pairPickSecond'), tone: 'info' })
-  }
-
-  const completePairing = (secondId: string) => {
-    if (!pairAnchorId) return
-    const result = pairPhotos(blocks, pairAnchorId, secondId)
-    setPairAnchorId(null)
+  /**
+   * The layer list offers this only on a layer with a photo right below it, so one click
+   * merges the two; the toast keeps it reversible like every other canvas edit.
+   */
+  const pairWithNextLayer = (photoId: string) => {
+    const previous = blocks
+    const result = pairPhotoWithNext(blocks, photoId)
     if (!result.row) {
-      onToast({ text: t('stitch.pairFailed'), tone: 'warning' })
+      onToast({ text: t('stitch.pairNeedsPhoto'), tone: 'info' })
       return
     }
     setBlocks(result.blocks)
     setSelectedId(result.row.id)
-    setPanelTab('adjust')
-    onToast({ text: t('stitch.paired'), tone: 'success' })
-  }
-
-  const selectLayer = (block: ComposerBlock) => {
-    if (pairAnchorId && block.type === 'photo') {
-      if (block.id === pairAnchorId) setPairAnchorId(null)
-      else completePairing(block.id)
-      return
-    }
-    setSelectedId(block.id)
+    onToast({
+      text: t('stitch.paired'),
+      tone: 'success',
+      action: { label: t('common.undo'), onAction: () => { setBlocks(previous); setSelectedId(photoId) } },
+    })
   }
 
   const splitSelectedRow = () => {
@@ -414,7 +401,6 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     setSelectedId(flattenComposerAssets(composition.blocks)[0]?.id ?? null)
     setFocusedId(null)
     setPhotoEditorId(null)
-    setPairAnchorId(null)
     setPanelTab('layers')
   }
 
@@ -446,7 +432,6 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     setSelectedId(null)
     setPhotoEditorId(null)
     setFocusedId(null)
-    setPairAnchorId(null)
     setSourceCompositionId(null)
     setSettings(DEFAULT_SETTINGS)
     onToast({ text: t('stitch.cleared'), tone: 'info' })
@@ -489,7 +474,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
 
           <div className="studio-sidebar__content">
             {panelTab === 'import' && <ResourcePanel library={library} selectedSourceId={selected?.sourceId ?? selected?.id ?? null}
-              onFiles={handleFiles} onText={() => insertTextAt(blocks.length)} onAdd={addAssetToCanvas} onOpen={openComposition}
+              onFiles={handleFiles} onText={() => insertTextAt(blocks.length)} onAdd={addAssetToCanvas} onSelectAsset={selectAssetOnCanvas} onOpen={openComposition}
               onCover={onCover} onRenameAsset={renameAsset} onToast={onToast} confirm={confirm} />}
 
             {panelTab === 'layers' && (
@@ -499,26 +484,20 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
                   <button type="button" className="icon-button" onClick={() => void resetDraft()} aria-label={t('stitch.clearDraft')}><RotateCcw size={18} /></button>
                 </div>
 
-                {pairAnchorId && (
-                  <div className="pair-banner" role="status">
-                    <span>{t('stitch.pairPicking')}</span>
-                    <button type="button" className="text-button" onClick={() => setPairAnchorId(null)}><X size={14} />{t('common.cancel')}</button>
-                  </div>
-                )}
-
                 <div className="sequence-scroll">
                   <ol className="sequence-list">
                     {blocks.map((block, index) => {
                       const rowSelected = block.type === 'photo-row' && (block.id === selectedId || block.photos.some((photo) => photo.id === selectedId))
                       const itemSelected = block.id === selectedId || rowSelected
-                      const pairTarget = !!pairAnchorId && block.type === 'photo' && block.id !== pairAnchorId
+                      // Pairing is only offered where it can land: a photo layer with a photo right below it.
+                      const canPairDown = block.type === 'photo' && blocks[index + 1]?.type === 'photo'
                       return (
                         <li key={block.id} className="sequence-row">
                           <button type="button" className="insert-text" onClick={() => insertTextAt(index)} aria-label={t('stitch.insertTextHere', { number: index + 1 })}>
                             <Plus size={13} />{t('stitch.insertTextHere', { number: index + 1 })}
                           </button>
                           <div
-                            className={`sequence-item ${itemSelected ? 'is-selected' : ''} ${block.type === 'photo-row' ? 'sequence-item--row' : ''} ${block.id === pairAnchorId ? 'is-pair-anchor' : ''} ${pairTarget ? 'is-pair-target' : ''}`}
+                            className={`sequence-item ${itemSelected ? 'is-selected' : ''} ${block.type === 'photo-row' ? 'sequence-item--row' : ''}`}
                             draggable
                             onDragStart={() => setDraggedId(block.id)}
                             onDragOver={(event) => event.preventDefault()}
@@ -528,11 +507,11 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
                             aria-label={t('stitch.selectLayer', { number: index + 1 })}
                             onKeyDown={(event) => {
                               if (event.target !== event.currentTarget) return
-                              if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectLayer(block) }
+                              if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(block.id) }
                               if ((event.metaKey || event.ctrlKey) && event.key === 'ArrowUp') { event.preventDefault(); setBlocks((current) => moveBlockToEdge(current, block.id, 'start')) }
                               if ((event.metaKey || event.ctrlKey) && event.key === 'ArrowDown') { event.preventDefault(); setBlocks((current) => moveBlockToEdge(current, block.id, 'end')) }
                             }}
-                            onClick={() => selectLayer(block)}
+                            onClick={() => setSelectedId(block.id)}
                           >
                             <span className="drag-handle" aria-hidden="true"><GripVertical size={17} /></span>
                             <span className="sequence-number">{index + 1}</span>
@@ -561,28 +540,22 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
                               <button type="button" onClick={(event) => { event.stopPropagation(); void removeCanvasItem(block.id) }} aria-label={t('stitch.removeFromCanvas')} title={t('stitch.removeFromCanvas')}><Trash2 size={15} /></button>
                             </span>
                           </div>
+                          {canPairDown && (
+                            <button type="button" className="sequence-pair" onClick={() => pairWithNextLayer(block.id)} title={t('stitch.pairDownward')} aria-label={t('stitch.pairDownwardAria', { number: index + 1 })}>
+                              <FoldVertical size={13} />{t('stitch.pairDownward')}
+                            </button>
+                          )}
                         </li>
                       )
                     })}
-                    {!!blocks.length && (
-                      <li className="sequence-row sequence-row--tail">
-                        <button type="button" className="insert-text" onClick={() => insertTextAt(blocks.length)} aria-label={t('stitch.addTextAtBottom')}>
-                          <Plus size={13} />{t('stitch.addTextAtBottom')}
-                        </button>
-                      </li>
-                    )}
                   </ol>
                   {!blocks.length && <div className="mini-empty"><ImageIcon size={26} /><p>{t('stitch.sortHint')}</p></div>}
                 </div>
-                <div className="layer-bottom-actions">
-                  <button type="button" className="secondary-button" onClick={() => insertTextAt(blocks.length)}><Plus size={16} /> {t('stitch.addTextAtBottom')}</button>
-                  {selectedRow ? (
+                {selectedRow && (
+                  <div className="layer-bottom-actions">
                     <button type="button" className="secondary-button" onClick={splitSelectedRow}><Columns2 size={16} /> {t('stitch.splitRow')}</button>
-                  ) : (
-                    <button type="button" className="secondary-button" onClick={pairSelectedPhoto}><Columns2 size={16} /> {t('stitch.pairPhotos')}</button>
-                  )}
-                  <p>{t('stitch.pairPhotosHint')}</p>
-                </div>
+                  </div>
+                )}
                 <FieldGroup title={t('stitch.canvasSettings')}>
                   <RangeField label={t('stitch.outputWidth')} value={settings.width} min={720} max={2160} step={120} suffix="px" onChange={(width) => setSettings({ ...settings, width })} />
                   <RangeField label={t('stitch.photoGap')} value={settings.gap} min={0} max={80} suffix="px" onChange={(gap) => setSettings({ ...settings, gap })} />

@@ -49,34 +49,28 @@ export function removeAssetFromBlocks(blocks: ComposerBlock[], assetId: string):
   })
 }
 
-export function pairPhotoWithNeighbor(
+/**
+ * Pairs a standalone photo with the layer directly beneath it. Only downward adjacency
+ * counts, so the row lands exactly where the two layers already were and nothing else moves.
+ */
+export function pairPhotoWithNext(
   blocks: ComposerBlock[],
   photoId: string,
 ): { blocks: ComposerBlock[]; row: PhotoRowBlock | null } {
   const index = blocks.findIndex((block) => block.type === 'photo' && block.id === photoId)
-  if (index < 0) return { blocks, row: null }
-  const neighborIndex = blocks[index + 1]?.type === 'photo'
-    ? index + 1
-    : blocks[index - 1]?.type === 'photo'
-      ? index - 1
-      : -1
-  if (neighborIndex < 0) return { blocks, row: null }
-
-  const firstIndex = Math.min(index, neighborIndex)
-  const secondIndex = Math.max(index, neighborIndex)
-  const first = blocks[firstIndex]
-  const second = blocks[secondIndex]
-  if (first.type !== 'photo' || second.type !== 'photo') return { blocks, row: null }
+  const first = index >= 0 ? blocks[index] : undefined
+  const below = index >= 0 ? blocks[index + 1] : undefined
+  if (!first || first.type !== 'photo' || !below || below.type !== 'photo') return { blocks, row: null }
 
   const row: PhotoRowBlock = {
     id: `row-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     type: 'photo-row',
-    photos: [first, second],
-    heightRatio: suggestRowHeightRatio([first, second]),
+    photos: [first, below],
+    heightRatio: suggestRowHeightRatio([first, below]),
     gap: 0,
   }
   const next = [...blocks]
-  next.splice(firstIndex, 2, row)
+  next.splice(index, 2, row)
   return { blocks: next, row }
 }
 
@@ -89,41 +83,6 @@ export function suggestRowHeightRatio(photos: Array<Pick<PhotoBlock, 'width' | '
   if (!photos.length) return 62
   const aspect = photos.reduce((sum, photo) => sum + (photo.height > 0 ? photo.width / photo.height : 1), 0) / photos.length
   return clamp(Math.round(50 / Math.max(0.1, aspect)), 35, 100)
-}
-
-/**
- * Places exactly the two chosen photos side by side. The row takes the position of
- * whichever photo came first, so the collage order stays predictable.
- */
-export function pairPhotos(
-  blocks: ComposerBlock[],
-  firstId: string,
-  secondId: string,
-): { blocks: ComposerBlock[]; row: PhotoRowBlock | null } {
-  if (firstId === secondId) return { blocks, row: null }
-  const indexOf = (id: string) => blocks.findIndex((block) => block.type === 'photo' && block.id === id)
-  const firstIndex = indexOf(firstId)
-  const secondIndex = indexOf(secondId)
-  if (firstIndex < 0 || secondIndex < 0) return { blocks, row: null }
-
-  const head = Math.min(firstIndex, secondIndex)
-  const tail = Math.max(firstIndex, secondIndex)
-  const first = blocks[head]
-  const second = blocks[tail]
-  if (first.type !== 'photo' || second.type !== 'photo') return { blocks, row: null }
-
-  const row: PhotoRowBlock = {
-    id: `row-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    type: 'photo-row',
-    photos: [first, second],
-    heightRatio: suggestRowHeightRatio([first, second]),
-    gap: 0,
-  }
-  // Both photos leave their old positions; the row lands where the earlier one was.
-  const remaining = blocks.filter((block) => block.id !== firstId && block.id !== secondId)
-  const insertAt = blocks.slice(0, head).filter((block) => block.id !== firstId && block.id !== secondId).length
-  remaining.splice(insertAt, 0, row)
-  return { blocks: remaining, row }
 }
 
 export function swapRowPhotos(blocks: ComposerBlock[], rowId: string): ComposerBlock[] {
