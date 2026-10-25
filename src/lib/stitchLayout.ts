@@ -1,6 +1,7 @@
 import type { ComposerBlock, ComposerSettings, PhotoBlock, PhotoOverlay, TextAppearance } from '../types'
 import { clamp, computeCropRect, resolvePhotoOverlayLayout, type CropRect } from './geometry'
 import { splitGraphemes } from './textInput'
+import { layoutRichText, type RichLayout } from './richText'
 
 export type TextMeasure = (text: string, style: TextAppearance) => number
 
@@ -29,7 +30,7 @@ export function wrapLayoutText(text: string, maxWidth: number, style: TextAppear
   })
 }
 
-export interface TextLayout { lines: string[]; lineHeight: number }
+export type TextLayout = RichLayout
 export interface PhotoPlacement {
   photo: PhotoBlock
   x: number
@@ -70,11 +71,9 @@ export function buildStitchLayout(blocks: ComposerBlock[], settings: ComposerSet
       const cellWidth = Math.max(1, (width - gap) / 2)
       photos = block.photos.map((photo, index) => placePhoto(photo, index * (cellWidth + gap), cellWidth, height))
     } else {
-      const lines = wrapLayoutText(block.text, Math.max(40, width - block.padding * 2), block, measure)
-      const lineHeight = block.fontSize * block.lineHeight
+      text = layoutRichText(block, Math.max(40, width - block.padding * 2), measure)
       const rotationRoom = Math.abs(Math.sin(block.rotation * Math.PI / 180)) * width * 0.12
-      height = Math.max(120, lines.length * lineHeight + block.padding * 2 + rotationRoom)
-      text = { lines, lineHeight }
+      height = Math.max(120, text.height + block.padding * 2 + rotationRoom)
     }
     const item = { block, x: settings.padding, y, width, height, text, photos }
     y += height + settings.gap
@@ -87,11 +86,10 @@ export function layoutPhotoOverlay(overlay: PhotoOverlay, width: number, height:
   const layout = resolvePhotoOverlayLayout(overlay)
   const boxWidth = width * layout.width
   const padding = overlay.boxPadding ?? 28
-  const lines = wrapLayoutText(overlay.text, Math.max(40, boxWidth - padding * 2), overlay, measure)
-  const lineHeight = overlay.fontSize * overlay.lineHeight
-  const boxHeight = Math.max(lineHeight + padding * 2, lines.length * lineHeight + padding * 2)
+  const rich = layoutRichText(overlay, Math.max(40, boxWidth - padding * 2), measure)
+  const boxHeight = Math.max(rich.lineHeight + padding * 2, rich.height + padding * 2)
   return {
-    width: boxWidth, height: boxHeight, padding, lines, lineHeight,
+    ...rich, textHeight: rich.height, width: boxWidth, height: boxHeight, padding,
     x: clamp(width * layout.x, boxWidth / 2, width - boxWidth / 2),
     y: clamp(height * layout.y, boxHeight / 2, height - boxHeight / 2),
   }

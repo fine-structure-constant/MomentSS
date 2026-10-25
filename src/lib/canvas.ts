@@ -11,6 +11,8 @@ import { clamp, computeCropRect, fitCanvasSize, gridDimensions } from './geometr
 import { buildStitchLayout, createTextMeasurer, layoutPhotoOverlay, type StitchLayout } from './stitchLayout'
 import { isImportableImage, prepareImageFile } from './imageImport'
 import { readPhotoMetadata } from './photoMetadata'
+import { ensureBlockFonts } from './fonts'
+import type { TextRun } from './richText'
 
 interface LoadedImage {
   source: CanvasImageSource
@@ -118,7 +120,24 @@ function drawPhotoOverlay(
   context.fillStyle = overlay.color
   const textX = overlay.align === 'left' ? -boxWidth / 2 + textPadding : overlay.align === 'right' ? boxWidth / 2 - textPadding : 0
   const startY = -((lines.length - 1) * lineHeight) / 2
-  lines.forEach((line, index) => context.fillText(line, textX, startY + index * lineHeight, boxWidth - textPadding * 2))
+  if (metrics.rich) drawTextRuns(context, metrics.runs, -boxWidth / 2 + textPadding, -metrics.textHeight / 2)
+  else lines.forEach((line, index) => context.fillText(line, textX, startY + index * lineHeight, boxWidth - textPadding * 2))
+  context.restore()
+}
+
+function drawTextRuns(context: CanvasRenderingContext2D, runs: TextRun[], x: number, y: number): void {
+  context.save()
+  context.textAlign = 'left'
+  context.textBaseline = 'alphabetic'
+  for (const run of runs) {
+    context.font = `${run.style.italic ? 'italic' : 'normal'} ${run.style.fontWeight} ${run.style.fontSize}px ${run.style.fontFamily}`
+    context.fillStyle = run.style.color
+    context.fillText(run.text, x + run.x, y + run.y)
+    for (const decoration of [run.style.underline ? 0.12 : null, run.style.strike ? -0.3 : null]) {
+      if (decoration === null) continue
+      context.fillRect(x + run.x, y + run.y + run.style.fontSize * decoration, run.width, Math.max(1, run.style.fontSize / 20))
+    }
+  }
   context.restore()
 }
 
@@ -189,11 +208,13 @@ export async function renderStitch(
   settings: ComposerSettings,
   requestedWidth = settings.width,
 ): Promise<RenderReport> {
+  await ensureBlockFonts(blocks)
   const layout = buildStitchLayout(blocks, settings, createTextMeasurer())
   return renderStitchLayout(canvas, layout, settings.background, requestedWidth)
 }
 
 export async function renderStitchLayout(canvas: HTMLCanvasElement, layout: StitchLayout, background: string, requestedWidth = layout.width): Promise<RenderReport> {
+  await ensureBlockFonts(layout.items.map((item) => item.block))
   const baseScale = requestedWidth / layout.width
   const fitted = fitCanvasSize(requestedWidth, Math.max(1, layout.height * baseScale))
 
@@ -227,7 +248,8 @@ export async function renderStitchLayout(canvas: HTMLCanvasElement, layout: Stit
       context.textAlign = block.align
       const textX = block.align === 'left' ? -width / 2 + block.padding : block.align === 'right' ? width / 2 - block.padding : 0
       const startY = -((metrics.lines.length - 1) * metrics.lineHeight) / 2
-      metrics.lines.forEach((line, lineIndex) => {
+      if (metrics.rich) drawTextRuns(context, metrics.runs, -width / 2 + block.padding, -metrics.height / 2)
+      else metrics.lines.forEach((line, lineIndex) => {
         context.fillText(line, textX, startY + lineIndex * metrics.lineHeight)
       })
       context.restore()

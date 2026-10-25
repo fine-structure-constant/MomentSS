@@ -1,0 +1,18 @@
+[
+  {
+    "family": "MomentRounded-v1",
+    "source": "https://raw.githubusercontent.com/Warren2060/ChillRoundGothic/53505f0818983d2fcdda00dc66e051ad13e81ffb/woff/ChillRoundGothic_Regular.woff",
+    "license": "MomentRounded-v1-LICENSE.txt",
+    "characters": 27183,
+    "bytes": 6140100,
+    "weight": 400
+  },
+  {
+    "family": "MomentSans-v1",
+    "source": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/Variable/TTF/Subset/NotoSansSC-VF.ttf",
+    "license": "MomentSans-v1-LICENSE.txt",
+    "characters": 30890,
+    "bytes": 4193468,
+    "weight": 400
+  }
+]

@@ -15,6 +15,8 @@ import { downloadBlob } from '../lib/canvas'
 import { DEFAULT_SETTINGS } from '../lib/defaults'
 import { DATE_GROUPS, RESOURCE_SORTS, dateGroup, resourceDate, resourceLabel, sortResources, type DateGrouping, type ResourceSort } from '../lib/resourceCatalog'
 import { readResourceView, rememberResourceView, RESOURCE_COLUMNS, RESOURCE_KINDS, type ResourceKind } from '../lib/preferences'
+import { textStyles } from '../lib/fonts'
+import { useTextFonts } from '../hooks/useTextFonts'
 
 function BlobImage({ blob }: { blob: Blob }) {
   const url = useObjectUrl(blob)
@@ -61,7 +63,6 @@ interface ResourcePanelProps {
   onFiles: (files: File[]) => Promise<void>
   onText: () => void
   onAdd: (asset: ImportedAsset) => void
-  onSelectAsset: (asset: ImportedAsset) => void
   onOpen: (composition: SavedComposition) => void
   onCover: (id: string) => void
   onRenameAsset: (asset: ImportedAsset, name: string) => void
@@ -70,7 +71,7 @@ interface ResourcePanelProps {
 }
 
 export function ResourcePanel({
-  library, selectedSourceId, onFiles, onText, onAdd, onSelectAsset, onOpen, onCover, onRenameAsset, onToast, confirm,
+  library, selectedSourceId, onFiles, onText, onAdd, onOpen, onCover, onRenameAsset, onToast, confirm,
 }: ResourcePanelProps) {
   const { t, locale } = useI18n()
   const [busy, setBusy] = useState(false)
@@ -133,6 +134,7 @@ export function ResourcePanel({
   const searching = !!normalized || view.kind !== 'all'
   const toggleChecked = (id: string) => setChecked((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
   const selectedIds = checked.filter((id) => items.some((item) => item.id === id))
+  const selectedAssets = items.filter((item): item is ImportedAsset => !('blocks' in item) && selectedIds.includes(item.id))
   const bulkRemove = async (ids: string[], clear = false) => {
     if (!ids.length || busy) return
     const ok = await confirm({ title: t(clear ? 'bulk.clearTitle' : 'bulk.deleteTitle'), body: t('bulk.deleteBody', { count: ids.length }), confirmLabel: t('resource.removeConfirm'), tone: 'danger' })
@@ -339,6 +341,7 @@ export function ResourcePanel({
       </div>
       <div className="resource-manage-actions"><button type="button" className="secondary-button" aria-pressed={managing} onClick={() => { setManaging((value) => !value); setChecked([]) }}>{t(managing ? 'common.done' : 'bulk.manage')}</button><button type="button" className="text-button" disabled={busy || !library.assets.length} onClick={() => void bulkRemove(library.assets.map((item) => item.id), true)}>{t('bulk.clear')}</button></div>
       {managing && <div className="resource-bulk-bar"><label><input type="checkbox" checked={!!items.length && items.every((item) => checked.includes(item.id))} onChange={(event) => setChecked(event.currentTarget.checked ? items.map((item) => item.id) : [])} />{t('bulk.selectFiltered', { count: items.length })}</label><span role="status">{exportProgress || t('bulk.selected', { count: selectedIds.length })}</span><div>{(['image/png', 'image/jpeg'] as const).map((format) => <button key={format} type="button" className="secondary-button" disabled={busy || !selectedIds.length} onClick={() => void bulkExport(format)}>{t('bulk.export', { format: format === 'image/png' ? 'PNG' : 'JPG' })}</button>)}<button type="button" className="danger-button" disabled={busy || !selectedIds.length} onClick={() => void bulkRemove(selectedIds)}>{t('bulk.delete')}</button></div></div>}
+      {managing && <button type="button" className="secondary-button" disabled={busy || !selectedAssets.length} onClick={() => selectedAssets.forEach(onAdd)}>{t('bulk.addOrdered', { count: selectedAssets.length })}</button>}
       <p className="resource-toolbar__count">{t('resource.matchCount', { count: filtered })}</p>
     </div>
 
@@ -417,7 +420,8 @@ function ResourceDetail({ resource, busy, locale, primaryLabel, onPrimary, cover
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const dialog = useRef<HTMLElement>(null)
   const close = useRef<HTMLButtonElement>(null)
-  const measure = useMemo(() => createTextMeasurer(), [])
+  const fontState = useTextFonts(textStyles('blocks' in resource ? [...resource.blocks, ...(resource.cover ? [resource.cover.photo] : [])] : [resource]))
+  const measure = useMemo(() => createTextMeasurer(), [fontState.revision])
 
   const composition = useMemo(() => 'blocks' in resource ? resource : {
     name: resourceName(resource, ''),

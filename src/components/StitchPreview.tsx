@@ -4,6 +4,7 @@ import { useObjectUrl } from '../hooks/useObjectUrl'
 import { useI18n } from '../i18n'
 import type { PhotoOverlay, TextAppearance } from '../types'
 import { layoutPhotoOverlay, type PhotoPlacement, type StitchLayout, type StitchLayoutItem, type TextMeasure } from '../lib/stitchLayout'
+import { TextRunsPreview } from './TextRunsPreview'
 
 function textStyle(style: TextAppearance): CSSProperties {
   return { fontFamily: style.fontFamily, fontSize: style.fontSize, fontWeight: style.fontWeight, fontStyle: style.italic ? 'italic' : 'normal' }
@@ -26,8 +27,20 @@ function Overlay({ overlay, width, height, measure }: { overlay: PhotoOverlay; w
       <rect x={-box.width / 2} y={-box.height / 2} width={box.width} height={box.height} rx={Math.min(overlay.borderRadius ?? 0, box.width / 2, box.height / 2)}
         fill={overlay.background} fillOpacity={(overlay.backgroundOpacity ?? 58) / 100}
         stroke={strokeStyle === 'none' ? 'none' : overlay.borderColor ?? '#ffffff'} strokeWidth={strokeWidth} strokeDasharray={dash} strokeLinecap={strokeStyle === 'dotted' ? 'round' : 'butt'} />
-      <TextLines style={overlay} lines={box.lines} lineHeight={box.lineHeight} x={x} />
+      {box.rich ? <TextRunsPreview runs={box.runs} x={-box.width / 2 + box.padding} y={-box.textHeight / 2} /> : <TextLines style={overlay} lines={box.lines} lineHeight={box.lineHeight} x={x} />}
     </g>
+  </svg>
+}
+
+export function PhotoTextBoxPreview({ overlay, width, height, measure }: { overlay: PhotoOverlay; width: number; height: number; measure: TextMeasure }) {
+  const box = layoutPhotoOverlay(overlay, width, height, measure)
+  const border = overlay.borderWidth ?? 2
+  const borderStyle = overlay.borderStyle ?? 'none'
+  const x = overlay.align === 'left' ? box.padding : overlay.align === 'right' ? box.width - box.padding : box.width / 2
+  return <svg viewBox={`0 0 ${box.width} ${box.height}`} style={{ display: 'block', width: '100%', height: '100%', overflow: 'visible' }} aria-hidden="true">
+    <rect width={box.width} height={box.height} rx={Math.min(overlay.borderRadius ?? 0, box.width / 2, box.height / 2)} fill={overlay.background} fillOpacity={(overlay.backgroundOpacity ?? 58) / 100}
+      stroke={borderStyle === 'none' ? 'none' : overlay.borderColor ?? '#ffffff'} strokeWidth={border} strokeDasharray={borderStyle === 'dashed' ? `${Math.max(4, border * 4)} ${Math.max(3, border * 2.5)}` : borderStyle === 'dotted' ? `0 ${Math.max(4, border * 3)}` : undefined} strokeLinecap={borderStyle === 'dotted' ? 'round' : 'butt'} />
+    {box.rich ? <TextRunsPreview runs={box.runs} x={box.padding} y={(box.height - box.textHeight) / 2} /> : <g transform={`translate(0 ${box.height / 2})`}><TextLines style={overlay} lines={box.lines} lineHeight={box.lineHeight} x={x} /></g>}
   </svg>
 }
 
@@ -85,7 +98,7 @@ export function StitchPreview({ layout, background, measure, selectedId, focused
         <button type="button" className="structured-hit" style={{ background: block.background }} aria-pressed={selectedId === block.id} aria-label={t('stitch.inspectPart', { name: name(item) })} onClick={() => onSelect(block.id, block.id)}>
           <svg viewBox={`0 0 ${item.width} ${item.height}`} aria-hidden="true">
             <g transform={`translate(${item.width / 2} ${item.height / 2}) rotate(${block.rotation})`}>
-              <TextLines style={block} lines={item.text.lines} lineHeight={item.text.lineHeight} x={block.align === 'left' ? -item.width / 2 + block.padding : block.align === 'right' ? item.width / 2 - block.padding : 0} />
+              {item.text.rich ? <TextRunsPreview runs={item.text.runs} x={-item.width / 2 + block.padding} y={-item.text.height / 2} /> : <TextLines style={block} lines={item.text.lines} lineHeight={item.text.lineHeight} x={block.align === 'left' ? -item.width / 2 + block.padding : block.align === 'right' ? item.width / 2 - block.padding : 0} />}
             </g>
           </svg>
         </button>

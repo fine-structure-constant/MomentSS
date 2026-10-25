@@ -37,7 +37,7 @@ describe('independent asset library', () => {
     const second = createLayerFromAsset(original)
     const edited: TextBlock = { ...first, text: '第一行\n第二行', fontFamily: 'serif', fontSize: 72, fontWeight: 700, italic: true, color: '#ff0000', background: '#eeeeee', align: 'right', rotation: 8, lineHeight: 1.8, padding: 100 }
     const [saved] = saveEditedAsset([original], edited)
-    expect(saved).toEqual({ ...edited, id: original.id, sourceId: undefined })
+    expect(saved).toMatchObject({ ...edited, id: original.id, sourceId: undefined })
     expect(original.text).toBe('初稿')
     expect(second).toMatchObject({ text: '初稿' })
     expect(createLayerFromAsset(saved)).toMatchObject({ ...edited, id: expect.any(String), sourceId: original.id })
@@ -47,7 +47,7 @@ describe('independent asset library', () => {
     const layer = createLayerFromAsset(photo) as PhotoBlock
     const edited: PhotoBlock = { ...layer, cropZoom: 2, cropX: 0.3, frameHeight: 0.6, overlay: { ...createPhotoOverlay('新的图片文字'), x: 0.4, y: 0.2, width: 0.5, rotation: 7, backgroundOpacity: 60, boxPadding: 32, borderStyle: 'dashed', borderWidth: 4, borderColor: '#eeffaa', borderRadius: 20 } }
     const [saved] = saveEditedAsset([photo], edited)
-    expect(saved).toEqual({ ...edited, id: photo.id, sourceId: undefined })
+    expect(saved).toMatchObject({ ...edited, id: photo.id, sourceId: undefined })
     expect(saved.type === 'photo' && saved.blob).toBe(photo.blob)
     expect(saved.type === 'photo' && saved.overlay).not.toBe(edited.overlay)
     const reused = createLayerFromAsset(saved) as PhotoBlock

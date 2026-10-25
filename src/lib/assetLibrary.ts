@@ -11,7 +11,7 @@ const TEXT_STYLE_KEYS: Array<keyof TextBlock> = [
  */
 export function findTextAsset(assets: ImportedAsset[], candidate: TextBlock): TextBlock | null {
   return assets.find((asset): asset is TextBlock => asset.type === 'text'
-    && TEXT_STYLE_KEYS.every((key) => asset[key] === candidate[key])) ?? null
+    && TEXT_STYLE_KEYS.every((key) => asset[key] === candidate[key]) && JSON.stringify(asset.richText) === JSON.stringify(candidate.richText)) ?? null
 }
 
 export function createLayerFromAsset(asset: ImportedAsset): ImportedAsset {
@@ -22,12 +22,12 @@ export function createLayerFromAsset(asset: ImportedAsset): ImportedAsset {
 }
 
 /** The last edited layer becomes the reusable template; other placed copies stay independent. */
-export function saveEditedAsset(assets: ImportedAsset[], layer: ImportedAsset): ImportedAsset[] {
+export function saveEditedAsset(assets: ImportedAsset[], layer: ImportedAsset, editedAt: number | null = Date.now()): ImportedAsset[] {
   const sourceId = layer.sourceId ?? layer.id
   return assets.map((asset) => {
     // Removing an attachment is intentional: later layer edits must not recreate it.
     if (asset.id !== sourceId || asset.type !== layer.type) return asset
-    const template = { ...layer, id: asset.id, sourceId: undefined }
+    const template = { ...layer, id: asset.id, sourceId: undefined, displayName: asset.displayName, importedAt: asset.importedAt, taskId: asset.taskId, updatedAt: editedAt ?? asset.updatedAt }
     return template.type === 'photo'
       ? { ...template, overlay: template.overlay ? { ...template.overlay } : undefined }
       : template
@@ -53,7 +53,7 @@ export function recoverEditedAssets(assets: ImportedAsset[], blocks: ComposerBlo
     // An untouched duplicate must not overwrite an edited copy during recovery.
     // Old drafts lack edit timestamps; if several copies differ, the last in canvas order wins.
     return original && original.type === layer.type && assetContent(original) !== assetContent(layer)
-      ? saveEditedAsset(recovered, layer)
+      ? saveEditedAsset(recovered, layer, null)
       : recovered
   }, assets)
 }

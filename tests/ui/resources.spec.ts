@@ -28,6 +28,7 @@ test('sort/filter/select all matches and export a resource ZIP', async ({ page }
   await expect(page.locator('.resource-tile__name')).toHaveText(['IMG_1.svg', 'IMG_2.svg', 'IMG_10.svg'])
   await page.getByRole('button', { name: '多选管理', exact: true }).click()
   await page.getByRole('checkbox', { name: '选择全部 3 个筛选结果', exact: true }).check()
+  await page.getByRole('button', { name: '按此顺序添加 3 个素材', exact: true }).click()
   const downloadEvent = page.waitForEvent('download')
   await page.getByRole('button', { name: '打包 PNG', exact: true }).click()
   const download = await downloadEvent
@@ -37,6 +38,8 @@ test('sort/filter/select all matches and export a resource ZIP', async ({ page }
   await expect(page.locator('.resource-tile')).toHaveCount(0)
   await page.reload()
   await expect(page.getByRole('combobox', { name: '资源排序', exact: true })).toHaveValue('name')
+  await tab(page, '图层')
+  await expect(page.locator('.layer-row__label strong')).toHaveText(['IMG_10.svg', 'IMG_2.svg', 'IMG_1.svg', 'IMG_1.svg', 'IMG_2.svg', 'IMG_10.svg'])
 })
 
 test('tasks isolate drafts and resources across switching, refresh, archive and restore', async ({ page }) => {
@@ -71,9 +74,52 @@ test('tasks isolate drafts and resources across switching, refresh, archive and 
   await expect(page.locator('.resource-tile')).toHaveCount(1)
 })
 
+test('refresh retains the saved composition target and updating keeps its identity', async ({ page }) => {
+  await page.goto('/')
+  await page.locator('input[type=file]').setInputFiles(image())
+  await saved(page)
+  await page.getByRole('button', { name: '保存长图', exact: true }).click()
+  const card = page.locator('[data-composition-id]')
+  await expect(card).toHaveCount(1)
+  const id = await card.getAttribute('data-composition-id')
+  await saved(page)
+  await page.reload()
+  await expect(page.getByRole('button', { name: '更新这张长图', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '文字卡片', exact: true }).click()
+  await page.getByRole('button', { name: '更新这张长图', exact: true }).click()
+  await expect(card).toHaveCount(1)
+  await expect(card).toHaveAttribute('data-composition-id', id!)
+  await expect.poll(() => page.evaluate((compositionId) => new Promise<number>((resolve, reject) => {
+    const request = indexedDB.open('liubai-collage', 3)
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => { const db = request.result; const tx = db.transaction('assets'); const get = tx.objectStore('assets').get(`composition:${compositionId}`); tx.oncomplete = () => { db.close(); resolve(get.result?.blocks.length ?? 0) } }
+  }), id)).toBe(2)
+})
+
 test('a corrupt file does not discard another valid file in the batch', async ({ page }) => {
   await page.goto('/')
   await page.locator('input[type=file]').setInputFiles([image(), { name: 'bad.png', mimeType: 'image/png', buffer: Buffer.from('not an image') }])
   await expect(page.locator('.resource-tile')).toHaveCount(1)
   await expect(page.locator('.status-toast--warning')).toBeVisible()
+})
+
+test('capture dates come from original EXIF and unknown times remain separate', async ({ page }) => {
+  await page.goto('/')
+  await page.locator('input[type=file]').setInputFiles(['tests/fixtures/capture-with-offset.jpg', 'tests/fixtures/capture-without-offset.jpg'])
+  await expect(page.locator('.resource-tile')).toHaveCount(2)
+  await expect(page.locator('input[type=file]')).toBeEnabled()
+  await page.locator('input[type=file]').setInputFiles(image('unknown.svg'))
+  await expect(page.locator('.resource-tile')).toHaveCount(3)
+  await page.getByRole('combobox', { name: '资源排序', exact: true }).selectOption('captured-asc')
+  await page.getByRole('combobox', { name: '日期分组依据', exact: true }).selectOption('captured')
+  await expect(page.locator('.resource-tile__name')).toHaveText(['capture-without-offset.jpg', 'capture-with-offset.jpg', 'unknown.svg'])
+  await expect(page.locator('.resource-date-heading')).toContainText(['更早', '时间未知'])
+  await saved(page)
+  const data = await assets(page)
+  const known = data.find((item) => item.originalName === 'capture-with-offset.jpg')!
+  expect(known.capturedAt).toBe(Date.UTC(2020, 0, 2, 2, 30))
+  expect(known.capturedOffsetMinutes).toBe(480)
+  const naive = data.find((item) => item.originalName === 'capture-without-offset.jpg')!
+  expect(naive.capturedAt).toBeUndefined()
+  expect(naive.capturedLocalTime).toBe('2020-01-01T10:30:00')
 })

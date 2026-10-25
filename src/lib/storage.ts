@@ -128,13 +128,14 @@ export async function saveProject(project: Project): Promise<void> { await write
 export async function saveActiveProject(projectId: string): Promise<void> { await writeEntry(PROJECTS, 'active', projectId) }
 
 /** One transaction: bulk removal never commits just half its resource selection. */
-export async function saveResourceSelection(assets: ImportedAsset[], removedCompositionIds: string[], projectId = LEGACY_PROJECT_ID): Promise<void> {
+export async function saveResourceSelection(assets: ImportedAsset[], removedCompositionIds: string[], projectId = LEGACY_PROJECT_ID, restoredCompositions: SavedComposition[] = []): Promise<void> {
   const db = await openDatabase()
   return new Promise((resolve, reject) => {
     const tx = db.transaction(ASSETS, 'readwrite')
     tx.objectStore(ASSETS).put(assets, assetKey(projectId))
     tx.objectStore(ASSETS).put(RESOURCE_EDIT_VERSION, RESOURCE_EDIT_VERSION_KEY)
     for (const id of removedCompositionIds) tx.objectStore(ASSETS).delete(COMPOSITION_PREFIX + id)
+    for (const composition of restoredCompositions) tx.objectStore(ASSETS).put(composition, COMPOSITION_PREFIX + composition.id)
     tx.oncomplete = () => { db.close(); resolve() }
     tx.onabort = () => { db.close(); reject(tx.error) }
   })

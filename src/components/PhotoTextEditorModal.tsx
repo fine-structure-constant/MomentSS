@@ -1,5 +1,5 @@
 import { Check, Move, Trash2, X } from 'lucide-react'
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
 import { useObjectUrl } from '../hooks/useObjectUrl'
 import { clamp, computeCropRect, cropPanRoom, resolvePhotoOverlayLayout } from '../lib/geometry'
 import type { CropState, PhotoBlock, PhotoOverlay } from '../types'
@@ -7,6 +7,9 @@ import { RangeField } from './Fields'
 import { CropFields } from './CropEditor'
 import { TextControls } from './TextControls'
 import { useI18n } from '../i18n'
+import { PhotoTextBoxPreview } from './StitchPreview'
+import { createTextMeasurer, layoutPhotoOverlay } from '../lib/stitchLayout'
+import { useTextFonts } from '../hooks/useTextFonts'
 
 interface PhotoTextEditorModalProps {
   photo: PhotoBlock
@@ -42,6 +45,9 @@ export function PhotoTextEditorModal({
 
   // Edits stay local until the user confirms, so opening and closing never adds text.
   const [draft, setDraft] = useState<PhotoOverlay>(() => overlay ?? fallbackOverlay)
+  const fontState = useTextFonts([draft])
+  const measure = useMemo(() => createTextMeasurer(), [fontState.revision])
+  const box = layoutPhotoOverlay(draft, frameWidth, frameWidth / aspect, measure)
   const crop: CropState = { zoom: photo.cropZoom ?? 1, x: photo.cropX ?? 0, y: photo.cropY ?? 0 }
   const rect = computeCropRect(photo.width, photo.height, aspect, crop)
   const room = cropPanRoom(photo.width, photo.height, aspect, crop)
@@ -169,16 +175,14 @@ export function PhotoTextEditorModal({
                   event.currentTarget.releasePointerCapture(event.pointerId)
                 }}
                 style={{
-                  left: `${layout.x * 100}%`,
-                  top: `${layout.y * 100}%`,
+                  left: `${box.x / frameWidth * 100}%`,
+                  top: `${box.y / (frameWidth / aspect) * 100}%`,
                   width: `${layout.width * 100}%`,
+                  height: `${box.height * perPixel}cqw`,
                   color: draft.color,
-                  background: withOpacity(draft.background, opacity),
-                  padding: `${boxPadding * perPixel}cqw`,
-                  borderStyle,
-                  borderWidth: `${borderWidth * perPixel}cqw`,
-                  borderColor: draft.borderColor ?? '#ffffff',
-                  borderRadius: `${borderRadius * perPixel}cqw`,
+                  background: 'transparent',
+                  padding: 0,
+                  border: 0,
                   fontFamily: draft.fontFamily,
                   fontSize: `${draft.fontSize * perPixel}cqw`,
                   fontWeight: draft.fontWeight,
@@ -188,7 +192,7 @@ export function PhotoTextEditorModal({
                   transform: `translate(-50%, -50%) rotate(${draft.rotation}deg)`,
                 }}
               >
-                {draft.text || t('text.emptyOverlay')}
+                <PhotoTextBoxPreview overlay={draft} width={frameWidth} height={frameWidth / aspect} measure={measure} />
               </div>
               {(room.x || room.y) && <span className="photo-text-preview__hint">{t('crop.dragHint')}</span>}
             </div>

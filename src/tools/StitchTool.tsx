@@ -1,12 +1,7 @@
 import {
-  ArrowDown,
-  ArrowUp,
-  ChevronsDown,
-  ChevronsUp,
   Columns2,
   CopyPlus,
   FoldVertical,
-  GripVertical,
   Image as ImageIcon,
   ImagePlus,
   Layers3,
@@ -28,7 +23,6 @@ import {
   findPhotoRow,
   flattenComposerAssets,
   insertBlockAfter,
-  moveBlockToEdge,
   pairPhotoWithNext,
   removeAssetFromBlocks,
   renamePhotosInBlocks,
@@ -48,7 +42,7 @@ import {
   type OverlayStylePreset,
   type TextStylePreset,
 } from '../lib/preferences'
-import { loadStitchWorkspace, saveStitchDraft } from '../lib/storage'
+import { loadStitchWorkspace } from '../lib/storage'
 import type { ComposerBlock, ComposerSettings, ImportedAsset, PhotoBlock, PhotoOverlay, PhotoRowBlock, SavedComposition, TextBlock } from '../types'
 import { useObjectUrl } from '../hooks/useObjectUrl'
 import { FieldGroup, RangeField } from '../components/Fields'
@@ -62,6 +56,9 @@ import { StitchPreview } from '../components/StitchPreview'
 import type { ToastMessage } from '../components/StatusToast'
 import { useI18n } from '../i18n'
 import { restoreDeletedLayer } from '../lib/operations'
+import { textStyles } from '../lib/fonts'
+import { useTextFonts } from '../hooks/useTextFonts'
+import { LayerList } from '../components/LayerList'
 
 interface StitchToolProps {
   onToast: (message: ToastMessage) => void
@@ -87,7 +84,6 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const workspaceSaveState = saveState === 'error' || library.saveState === 'error' ? 'error' : saveState === 'saving' || library.saveState === 'saving' ? 'saving' : 'saved'
   const [busy, setBusy] = useState(false)
-  const [draggedId, setDraggedId] = useState<string | null>(null)
   const [photoEditorId, setPhotoEditorId] = useState<string | null>(null)
   const [panelTab, setPanelTab] = useState<'import' | 'layers' | 'adjust'>('import')
   const [focusedId, setFocusedId] = useState<string | null>(null)
@@ -96,7 +92,8 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   const [overlayPreset, setOverlayPreset] = useState<Partial<OverlayStylePreset>>({})
   const [prefsReady, setPrefsReady] = useState(false)
   const stageRef = useRef<HTMLElement>(null)
-  const measure = useMemo(() => createTextMeasurer(), [])
+  const fontState = useTextFonts(textStyles(blocks))
+  const measure = useMemo(() => createTextMeasurer(), [fontState.revision])
   const layout = useMemo(() => buildStitchLayout(blocks, settings, measure), [blocks, settings, measure])
   const snapshot = useRef<{ blocks: ComposerBlock[]; settings: ComposerSettings; sourceCompositionId: string | null } | null>(null)
 
@@ -233,51 +230,10 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     onToast({ text: t('stitch.assetAdded'), tone: 'success' })
   }
 
-  /**
-   * Selecting a resource means selecting the layer it came from, so the adjust tab can edit it.
-   * A resource that is not on the canvas has nothing to adjust yet.
-   */
-  const selectAssetOnCanvas = (asset: ImportedAsset) => {
-    const layer = blocks.find((block) => (block.type === 'photo' || block.type === 'text') && (block.sourceId ?? block.id) === asset.id)
-    const row = blocks.find((block) => block.type === 'photo-row' && block.photos.some((photo) => (photo.sourceId ?? photo.id) === asset.id))
-    const target = layer?.id ?? (row?.type === 'photo-row' ? row.photos.find((photo) => (photo.sourceId ?? photo.id) === asset.id)?.id : undefined)
-    if (!target) {
-      onToast({ text: t('resource.notOnCanvas', { name: asset.type === 'photo' ? asset.name : asset.text || t('stitch.blankText') }), tone: 'info' })
-      return
-    }
-    setSelectedId(target)
-    setFocusedId(null)
-    setPanelTab('adjust')
-  }
-
   const inspectPart = (id: string, focusId: string) => {
     setSelectedId(id)
     setFocusedId(focusId)
     setPanelTab('adjust')
-  }
-
-  const move = (id: string, direction: -1 | 1) => {
-    setBlocks((current) => {
-      const index = current.findIndex((block) => block.id === id)
-      const target = index + direction
-      if (index < 0 || target < 0 || target >= current.length) return current
-      const next = [...current]
-      ;[next[index], next[target]] = [next[target], next[index]]
-      return next
-    })
-  }
-
-  const moveBefore = (sourceId: string, targetId: string) => {
-    if (sourceId === targetId) return
-    setBlocks((current) => {
-      const next = [...current]
-      const sourceIndex = next.findIndex((item) => item.id === sourceId)
-      const targetIndex = next.findIndex((item) => item.id === targetId)
-      if (sourceIndex < 0 || targetIndex < 0) return current
-      const [item] = next.splice(sourceIndex, 1)
-      next.splice(sourceIndex < targetIndex ? targetIndex - 1 : targetIndex, 0, item)
-      return next
-    })
   }
 
   const layerLabel = (block: ComposerBlock) => block.type === 'photo' ? block.name : block.type === 'text' ? (block.text || t('stitch.blankText')) : t('stitch.photoRow')
@@ -459,6 +415,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
             <span>{t('stitch.liveCanvas')}</span>
             <span>{blocks.length ? `${Math.round(layout.width)} × ${Math.round(layout.height)}` : t('stitch.waiting')}</span>
           </div>
+          {(fontState.loading || fontState.error) && <p role="status" className="font-status">{t(fontState.error ? 'font.error' : 'font.loading')}</p>}
           {blocks.length ? (
             <StitchPreview layout={layout} background={settings.background} measure={measure} selectedId={selectedId} focusedId={focusedId} onSelect={inspectPart} onFocus={setFocusedId} />
           ) : (
@@ -482,7 +439,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
 
           <div className="studio-sidebar__content">
             {panelTab === 'import' && <ResourcePanel library={library} selectedSourceId={selected?.sourceId ?? selected?.id ?? null}
-              onFiles={handleFiles} onText={() => insertTextAt(blocks.length)} onAdd={addAssetToCanvas} onSelectAsset={selectAssetOnCanvas} onOpen={openComposition}
+              onFiles={handleFiles} onText={() => insertTextAt(blocks.length)} onAdd={addAssetToCanvas} onOpen={openComposition}
               onCover={onCover} onRenameAsset={renameAsset} onToast={onToast} confirm={confirm} />}
 
             {panelTab === 'layers' && (
@@ -492,78 +449,8 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
                   <button type="button" className="icon-button" onClick={() => void resetDraft()} aria-label={t('stitch.clearDraft')}><RotateCcw size={18} /></button>
                 </div>
 
-                <div className="sequence-scroll">
-                  <ol className="sequence-list">
-                    {blocks.map((block, index) => {
-                      const rowSelected = block.type === 'photo-row' && (block.id === selectedId || block.photos.some((photo) => photo.id === selectedId))
-                      const itemSelected = block.id === selectedId || rowSelected
-                      // Pairing is only offered where it can land: a photo layer with a photo right below it.
-                      const canPairDown = block.type === 'photo' && blocks[index + 1]?.type === 'photo'
-                      return (
-                        <li key={block.id} className="sequence-row">
-                          <button type="button" className="insert-text" onClick={() => insertTextAt(index)} aria-label={t('stitch.insertTextHere', { number: index + 1 })}>
-                            <Plus size={13} />{t('stitch.insertTextHere', { number: index + 1 })}
-                          </button>
-                          <div
-                            className={`sequence-item ${itemSelected ? 'is-selected' : ''} ${block.type === 'photo-row' ? 'sequence-item--row' : ''}`}
-                            draggable
-                            onDragStart={() => setDraggedId(block.id)}
-                            onDragOver={(event) => event.preventDefault()}
-                            onDrop={() => { if (draggedId) moveBefore(draggedId, block.id); setDraggedId(null) }}
-                            role="button"
-                            tabIndex={0}
-                            aria-label={t('stitch.selectLayer', { number: index + 1 })}
-                            onKeyDown={(event) => {
-                              if (event.target !== event.currentTarget) return
-                              if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(block.id) }
-                              if ((event.metaKey || event.ctrlKey) && event.key === 'ArrowUp') { event.preventDefault(); setBlocks((current) => moveBlockToEdge(current, block.id, 'start')) }
-                              if ((event.metaKey || event.ctrlKey) && event.key === 'ArrowDown') { event.preventDefault(); setBlocks((current) => moveBlockToEdge(current, block.id, 'end')) }
-                            }}
-                            onClick={() => setSelectedId(block.id)}
-                          >
-                            <span className="drag-handle" aria-hidden="true"><GripVertical size={17} /></span>
-                            <span className="sequence-number">{index + 1}</span>
-                            <span className={`sequence-thumb ${block.type === 'text' ? 'sequence-thumb--text' : ''} ${block.type === 'photo-row' ? 'sequence-thumb--pair' : ''}`}>
-                              {block.type === 'photo' && <PhotoThumbnail block={block} />}
-                              {block.type === 'text' && <Type size={21} />}
-                              {block.type === 'photo-row' && block.photos.map((photo) => <PhotoThumbnail key={photo.id} block={photo} />)}
-                            </span>
-                            {block.type === 'photo-row' ? (
-                              <span className="sequence-name sequence-name--row">
-                                <strong><Columns2 size={13} /> {t('stitch.photoRow')}</strong>
-                                <span className="row-photo-selectors">
-                                  {block.photos.map((photo, photoIndex) => (
-                                    <button key={photo.id} type="button" className={selectedId === photo.id ? 'is-active' : ''} onClick={(event) => { event.stopPropagation(); setSelectedId(photo.id); setPanelTab('adjust') }}>
-                                      {photoIndex + 1}. {photo.name}
-                                    </button>
-                                  ))}
-                                </span>
-                              </span>
-                            ) : <span className="sequence-name">{block.type === 'photo' ? block.name : block.text || t('stitch.blankText')}</span>}
-                            <span className="sequence-actions">
-                              <button type="button" onClick={(event) => { event.stopPropagation(); setBlocks((current) => moveBlockToEdge(current, block.id, 'start')) }} disabled={index === 0} aria-label={t('stitch.moveTop')} title={t('stitch.moveTop')}><ChevronsUp size={15} /></button>
-                              <button type="button" onClick={(event) => { event.stopPropagation(); move(block.id, -1) }} disabled={index === 0} aria-label={t('stitch.moveUp')} title={t('stitch.moveUp')}><ArrowUp size={15} /></button>
-                              <button type="button" onClick={(event) => { event.stopPropagation(); move(block.id, 1) }} disabled={index === blocks.length - 1} aria-label={t('stitch.moveDown')} title={t('stitch.moveDown')}><ArrowDown size={15} /></button>
-                              <button type="button" onClick={(event) => { event.stopPropagation(); setBlocks((current) => moveBlockToEdge(current, block.id, 'end')) }} disabled={index === blocks.length - 1} aria-label={t('stitch.moveBottom')} title={t('stitch.moveBottom')}><ChevronsDown size={15} /></button>
-                              <button type="button" onClick={(event) => { event.stopPropagation(); void removeCanvasItem(block.id) }} aria-label={t('stitch.removeFromCanvas')} title={t('stitch.removeFromCanvas')}><Trash2 size={15} /></button>
-                            </span>
-                          </div>
-                          {canPairDown && (
-                            <button type="button" className="sequence-pair" onClick={() => pairWithNextLayer(block.id)} title={t('stitch.pairDownward')} aria-label={t('stitch.pairDownwardAria', { number: index + 1 })}>
-                              <FoldVertical size={13} />{t('stitch.pairDownward')}
-                            </button>
-                          )}
-                        </li>
-                      )
-                    })}
-                  </ol>
-                  {!blocks.length && <div className="mini-empty"><ImageIcon size={26} /><p>{t('stitch.sortHint')}</p></div>}
-                </div>
-                {selectedRow && (
-                  <div className="layer-bottom-actions">
-                    <button type="button" className="secondary-button" onClick={splitSelectedRow}><Columns2 size={16} /> {t('stitch.splitRow')}</button>
-                  </div>
-                )}
+                <LayerList blocks={blocks} selectedId={selectedId} onSelect={setSelectedId} onInspect={(id) => { setSelectedId(id); setPanelTab('adjust') }} onChange={setBlocks} onInsert={insertTextAt} onRemove={(id) => void removeCanvasItem(id)} onPair={pairWithNextLayer} />
+                {selectedRow && <div className="layer-bottom-actions"><button type="button" className="secondary-button" onClick={splitSelectedRow}><Columns2 size={16} />{t('stitch.splitRow')}</button></div>}
                 <FieldGroup title={t('stitch.canvasSettings')}>
                   <RangeField label={t('stitch.outputWidth')} value={settings.width} min={720} max={2160} step={120} suffix="px" onChange={(width) => setSettings({ ...settings, width })} />
                   <RangeField label={t('stitch.photoGap')} value={settings.gap} min={0} max={80} suffix="px" onChange={(gap) => setSettings({ ...settings, gap })} />

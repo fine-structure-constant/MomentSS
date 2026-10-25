@@ -2,6 +2,19 @@ export type ToolId = 'stitch' | 'cover' | 'grid'
 
 export type TextAlign = 'left' | 'center' | 'right'
 
+export interface RichTextNode {
+  type: string
+  text?: string
+  attrs?: Record<string, unknown>
+  marks?: Array<{ type: string; attrs?: Record<string, unknown> }>
+  content?: RichTextNode[]
+}
+export interface RichTextDocument {
+  version: 1
+  type: 'doc'
+  content: RichTextNode[]
+}
+
 export interface ResourceMetadata {
   displayName?: string
   originalName?: string
@@ -26,6 +39,7 @@ export interface Project {
 
 export interface TextAppearance {
   text: string
+  richText?: RichTextDocument
   color: string
   background: string
   fontFamily: string

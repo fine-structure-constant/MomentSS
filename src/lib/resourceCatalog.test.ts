@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { dateGroup, normalizeResource, resourceDate, sortResources } from './resourceCatalog'
 import { parseCaptureTime } from './photoMetadata'
 import { createTextBlock } from './defaults'
+import type { PhotoBlock } from '../types'
 
 describe('resource dates and order', () => {
   it('sorts names naturally without mutating the source order', () => {
@@ -28,7 +29,7 @@ describe('resource dates and order', () => {
     expect(parseCaptureTime('2026:02:30 12:00:00', '+08:00')).toEqual({})
   })
   it('does not invent historical import dates from file modification dates', () => {
-    const photo = { id: 'old', type: 'photo' as const, name: 'old.jpg', blob: Object.assign(new Blob(), { lastModified: 123 }), width: 10, height: 10 }
+    const photo: PhotoBlock = { id: 'old', type: 'photo', name: 'old.jpg', blob: Object.assign(new Blob(), { lastModified: 123 }), width: 10, height: 10 }
     const normalized = normalizeResource(photo)
     expect(normalized.fileModifiedAt).toBe(123)
     expect(resourceDate(normalized, 'imported')).toBeUndefined()

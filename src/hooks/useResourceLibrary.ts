@@ -115,14 +115,24 @@ export function useResourceLibrary(onToast: (message: ToastMessage) => void) {
       throw error
     }
     return async () => {
+      // Apply the inverse before yielding, so later user actions see the restored state.
+      if (projectRef.current === id) {
+        const currentSaved = savedRef.current
+        const restored = restoreRemoved(latest.current, before, ids)
+        const restoredSaved = restoreRemoved(currentSaved, savedBefore, ids)
+        const targets = restoredSaved.filter((item) => savedIds.includes(item.id) && !currentSaved.some((record) => record.id === item.id))
+        applyAssets(restored)
+        applySaved(restoredSaved)
+        try { await enqueue(() => saveResourceSelection(restored, [], id, targets)) }
+        catch (error) { setSaveState('error'); throw error }
+        return
+      }
       await enqueue(async () => {
-        const current = projectRef.current === id ? latest.current : (await loadStitchWorkspace(id)).assets
+        const current = (await loadStitchWorkspace(id)).assets
         const restored = restoreRemoved(current, before, ids)
-        await saveImportedAssets(restored, id)
-        const existing = projectRef.current === id ? savedRef.current : await loadSavedCompositions(id)
+        const existing = await loadSavedCompositions(id)
         const restoredSaved = restoreRemoved(existing, savedBefore, ids)
-        for (const item of restoredSaved.filter((item) => savedIds.includes(item.id) && !existing.some((record) => record.id === item.id))) await saveComposition(item)
-        if (projectRef.current === id) { applyAssets(restored); applySaved(restoredSaved) }
+        await saveResourceSelection(restored, [], id, restoredSaved.filter((item) => savedIds.includes(item.id) && !existing.some((record) => record.id === item.id)))
       })
     }
   }, [projectId, applyAssets, applySaved, enqueue])

@@ -3,6 +3,7 @@ import { buildCoverLayout } from './coverLayout'
 import { buildStitchLayout, createTextMeasurer, type TextMeasure } from './stitchLayout'
 import { canvasToBlob, renderStitch, renderStitchLayout } from './canvas'
 import { DEFAULT_SETTINGS } from './defaults'
+import { ensureBlockFonts } from './fonts'
 
 export function compositionLayout(composition: Pick<SavedComposition, 'blocks' | 'settings' | 'cover'>, measure: TextMeasure) {
   return composition.cover ? buildCoverLayout(composition.blocks, composition.settings, composition.cover, measure).layout
@@ -11,6 +12,7 @@ export function compositionLayout(composition: Pick<SavedComposition, 'blocks' |
 
 export async function createComposition(name: string, blocks: ComposerBlock[], settings: ComposerSettings, cover?: CoverRecipe): Promise<SavedComposition> {
   const snapshot = structuredClone({ blocks, settings, cover })
+  await ensureBlockFonts([...snapshot.blocks, ...(snapshot.cover ? [snapshot.cover.photo] : [])])
   const layout = compositionLayout(snapshot, createTextMeasurer())
   const canvas = document.createElement('canvas')
   await renderStitchLayout(canvas, layout, cover?.background ?? settings.background, Math.min(180, settings.width))
@@ -20,6 +22,7 @@ export async function createComposition(name: string, blocks: ComposerBlock[], s
 }
 
 export async function exportResource(resource: ImportedAsset | SavedComposition, format: 'image/png' | 'image/jpeg') {
+  await ensureBlockFonts('blocks' in resource ? [...resource.blocks, ...(resource.cover ? [resource.cover.photo] : [])] : [resource])
   const canvas = document.createElement('canvas')
   const report = 'blocks' in resource
     ? await renderStitchLayout(canvas, compositionLayout(resource, createTextMeasurer()), resource.cover?.background ?? resource.settings.background)

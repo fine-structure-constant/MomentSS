@@ -1,0 +1,36 @@
+name: Check MomentSS
+on:
+  pull_request:
+  push:
+    branches:
+      - 'codex/**'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install dependencies
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('package-lock.json')
+          data = json.loads(path.read_text())
+          for package in data['packages'].values():
+              if package.get('resolved', '').startswith('https://registry.npmmirror.com/'):
+                  package['resolved'] = package['resolved'].replace('https://registry.npmmirror.com/', 'https://registry.npmjs.org/', 1)
+          path.write_text(json.dumps(data))
+          PY
+          npm ci --registry=https://registry.npmjs.org
+          npx playwright install --with-deps chromium
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:ui -- --workers=2
+      - run: python3 -m unittest discover -s deploy/tests -v

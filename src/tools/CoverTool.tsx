@@ -11,6 +11,8 @@ import { PhotoPlacementPreview, StitchPreview } from '../components/StitchPrevie
 import { FieldGroup, RangeField } from '../components/Fields'
 import type { ToastMessage } from '../components/StatusToast'
 import { useI18n } from '../i18n'
+import { textStyles } from '../lib/fonts'
+import { useTextFonts } from '../hooks/useTextFonts'
 
 interface CoverToolProps {
   library: ResourceLibrary
@@ -36,11 +38,12 @@ export function CoverTool({ library, initialCompositionId, onResources, onToast 
     stage.current?.scrollTo({ top: 0 })
     if (window.matchMedia('(max-width: 900px)').matches) stage.current?.scrollIntoView({ block: 'start' })
   }, [focusedId])
-  const measure = useMemo(() => createTextMeasurer(), [])
   const photos = library.assets.filter((asset): asset is PhotoBlock => asset.type === 'photo')
   const composition = library.compositions.find((item) => item.id === compositionId)
   const archivedPhotoId = `archived:${compositionId}`
   const photo = photoId === archivedPhotoId ? composition?.cover?.photo : photos.find((item) => item.id === photoId)
+  const fontState = useTextFonts(textStyles([...(composition?.blocks ?? []), ...(photo ? [photo] : [])]))
+  const measure = useMemo(() => createTextMeasurer(), [fontState.revision])
   const baseLayout = useMemo(() => composition ? buildStitchLayout(composition.blocks, composition.settings, measure) : null, [composition, measure])
 
   useEffect(() => {

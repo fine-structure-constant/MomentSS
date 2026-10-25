@@ -1,10 +1,10 @@
 import type { ImportedAsset, SavedComposition } from '../types'
 
 export type LibraryResource = ImportedAsset | SavedComposition
-export type ResourceSort = 'imported-desc' | 'imported-asc' | 'captured-asc' | 'captured-desc' | 'name' | 'updated-desc'
+export type ResourceSort = 'imported-desc' | 'imported-asc' | 'captured-asc' | 'captured-desc' | 'modified-desc' | 'name' | 'updated-desc'
 export type DateGrouping = 'none' | 'imported' | 'captured'
 export type DateGroup = 'today' | 'yesterday' | 'week' | 'month' | 'older' | 'unknown'
-export const RESOURCE_SORTS: ResourceSort[] = ['imported-desc', 'imported-asc', 'captured-asc', 'captured-desc', 'name', 'updated-desc']
+export const RESOURCE_SORTS: ResourceSort[] = ['imported-desc', 'imported-asc', 'captured-asc', 'captured-desc', 'modified-desc', 'name', 'updated-desc']
 export const DATE_GROUPS: DateGroup[] = ['today', 'yesterday', 'week', 'month', 'older', 'unknown']
 export function resourceLabel(resource: LibraryResource, blank = ''): string {
   return resource.displayName || ('blocks' in resource ? resource.name : resource.type === 'photo' ? resource.name : resource.text || blank)
@@ -32,7 +32,7 @@ export function dateGroup(value: number | undefined, now = Date.now()): DateGrou
 }
 export function sortResources(resources: LibraryResource[], sort: ResourceSort, locale = 'zh-CN'): LibraryResource[] {
   const collator = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' })
-  const date = (item: LibraryResource) => sort.startsWith('captured') ? resourceDate(item, 'captured') : sort.startsWith('updated') ? item.updatedAt ?? resourceDate(item, 'imported') : resourceDate(item, 'imported')
+  const date = (item: LibraryResource) => sort.startsWith('captured') ? resourceDate(item, 'captured') : sort.startsWith('modified') ? item.fileModifiedAt : sort.startsWith('updated') ? item.updatedAt ?? resourceDate(item, 'imported') : resourceDate(item, 'imported')
   return resources.map((item, index) => ({ item, index })).sort((a, b) => {
     if (sort === 'name') return collator.compare(resourceLabel(a.item), resourceLabel(b.item)) || a.index - b.index
     const av = date(a.item), bv = date(b.item)
