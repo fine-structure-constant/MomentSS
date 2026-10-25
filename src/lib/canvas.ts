@@ -10,6 +10,7 @@ import type {
 import { clamp, computeCropRect, fitCanvasSize, gridDimensions } from './geometry'
 import { buildStitchLayout, createTextMeasurer, layoutPhotoOverlay, type StitchLayout } from './stitchLayout'
 import { isImportableImage, prepareImageFile } from './imageImport'
+import { readPhotoMetadata } from './photoMetadata'
 
 interface LoadedImage {
   source: CanvasImageSource
@@ -349,8 +350,11 @@ export function downloadBlob(blob: Blob, fileName: string): void {
 
 export async function filesToPhotoBlocks(files: File[]): Promise<PhotoBlock[]> {
   const photos: PhotoBlock[] = []
-  for (const file of files) {
+  const batchId = crypto.randomUUID()
+  for (const [index, file] of files.entries()) {
+    try {
     if (!await isImportableImage(file)) continue
+    const metadata = await readPhotoMetadata(file)
     const blob = await prepareImageFile(file)
     const dimensions = await inspectImage(blob)
     photos.push({
@@ -360,7 +364,11 @@ export async function filesToPhotoBlocks(files: File[]): Promise<PhotoBlock[]> {
       blob,
       width: dimensions.width,
       height: dimensions.height,
+      ...metadata,
+      batchId,
+      importOrder: index,
     })
+    } catch { /* Keep valid files in the batch; the caller reports the skipped count. */ }
   }
   return photos
 }

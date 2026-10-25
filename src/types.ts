@@ -2,6 +2,28 @@ export type ToolId = 'stitch' | 'cover' | 'grid'
 
 export type TextAlign = 'left' | 'center' | 'right'
 
+export interface ResourceMetadata {
+  displayName?: string
+  originalName?: string
+  taskId?: string
+  importedAt?: number
+  fileModifiedAt?: number
+  capturedAt?: number
+  capturedLocalTime?: string
+  capturedOffsetMinutes?: number
+  batchId?: string
+  importOrder?: number
+  updatedAt?: number
+}
+
+export interface Project {
+  id: string
+  name: string
+  createdAt: number
+  updatedAt: number
+  archivedAt?: number
+}
+
 export interface TextAppearance {
   text: string
   color: string
@@ -31,7 +53,7 @@ export interface PhotoOverlay extends TextAppearance {
   position?: 'top' | 'center' | 'bottom'
 }
 
-export interface PhotoBlock {
+export interface PhotoBlock extends ResourceMetadata {
   id: string
   sourceId?: string
   type: 'photo'
@@ -58,7 +80,7 @@ export interface PhotoRowBlock {
   gap?: number
 }
 
-export interface TextBlock extends TextAppearance {
+export interface TextBlock extends TextAppearance, ResourceMetadata {
   id: string
   sourceId?: string
   type: 'text'
@@ -95,6 +117,8 @@ export interface StitchDraft {
   blocks: ComposerBlock[]
   settings: ComposerSettings
   updatedAt: number
+  sourceCompositionId?: string | null
+  schemaVersion?: number
 }
 
 export interface CoverRecipe {
@@ -107,7 +131,7 @@ export interface CoverRecipe {
 }
 
 /** Independent editable snapshot; deleting source assets never changes a saved composition. */
-export interface SavedComposition {
+export interface SavedComposition extends ResourceMetadata {
   id: string
   name: string
   kind: 'collage' | 'cover'

@@ -1,4 +1,5 @@
 import type { PhotoOverlay, TextAlign, TextAppearance } from '../types'
+import { RESOURCE_SORTS, type DateGrouping, type ResourceSort } from './resourceCatalog'
 
 /**
  * Remembers the last text and photo-overlay styling so new blocks start from what the
@@ -17,6 +18,8 @@ export type ResourceKind = 'all' | 'photo' | 'text' | 'collage'
 export interface ResourceViewPreset {
   kind: ResourceKind
   columns: number
+  sort?: ResourceSort
+  group?: DateGrouping
 }
 
 const ALIGNMENTS: TextAlign[] = ['left', 'center', 'right']
@@ -66,6 +69,8 @@ export const RESOURCE_COLUMNS = [2, 3, 4]
 const RESOURCE_VIEW_FIELDS: Array<[keyof ResourceViewPreset, Validator]> = [
   ['kind', oneOf(RESOURCE_KINDS)],
   ['columns', oneOf(RESOURCE_COLUMNS)],
+  ['sort', oneOf(RESOURCE_SORTS)],
+  ['group', oneOf(['none', 'imported', 'captured'])],
 ]
 
 function pick<T extends object>(raw: string | null, fields: Array<[keyof T, Validator]>): Partial<T> | null {

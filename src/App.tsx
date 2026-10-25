@@ -7,6 +7,7 @@ import { StitchTool } from './tools/StitchTool'
 import type { ToolId } from './types'
 import { useI18n, type MessageKey } from './i18n'
 import { useResourceLibrary } from './hooks/useResourceLibrary'
+import { ProjectManager } from './components/ProjectManager'
 
 const TOOLS: Array<{ id: ToolId; label: MessageKey; short: MessageKey; icon: typeof GalleryVerticalEnd }> = [
   { id: 'stitch', label: 'tool.stitch', short: 'tool.stitchShort', icon: GalleryVerticalEnd },
@@ -77,10 +78,11 @@ function App() {
       <div className="privacy-ribbon"><span /><strong>{t('app.noUpload')}</strong><span>{t('app.draftLocal')}</span></div>
 
       <div id="main" className="tool-surface">
+        {library.ready && <ProjectManager library={library} onToast={showToast} />}
         {!library.ready ? <div className="resource-loading" role={library.loadError ? 'alert' : 'status'}><div>{t(library.loadError ? 'resource.readError' : 'resource.loading')}{library.loadError && <button type="button" className="secondary-button" onClick={() => window.location.reload()}>{t('resource.refresh')}</button>}</div></div> : <>
-          {activeTool === 'stitch' && <StitchTool library={library} onToast={showToast} onCover={(id) => { setCoverCompositionId(id); setActiveTool('cover') }} />}
-          {activeTool === 'cover' && <CoverTool library={library} initialCompositionId={coverCompositionId} onResources={() => setActiveTool('stitch')} onToast={showToast} />}
-          {activeTool === 'grid' && <GridTool onToast={showToast} />}
+          {activeTool === 'stitch' && <StitchTool key={library.projectId} library={library} onToast={showToast} onCover={(id) => { setCoverCompositionId(id); setActiveTool('cover') }} />}
+          {activeTool === 'cover' && <CoverTool key={library.projectId} library={library} initialCompositionId={coverCompositionId} onResources={() => setActiveTool('stitch')} onToast={showToast} />}
+          {activeTool === 'grid' && <GridTool key={library.projectId} onToast={showToast} />}
         </>}
       </div>
 

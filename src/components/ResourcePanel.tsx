@@ -1,5 +1,5 @@
 import { Download, Eye, Frame, Image as ImageIcon, LayoutGrid, Pencil, Plus, Search, Trash2, Type } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { ComposerBlock, ImportedAsset, SavedComposition } from '../types'
 import type { ResourceLibrary } from '../hooks/useResourceLibrary'
 import type { ToastMessage } from './StatusToast'
@@ -13,7 +13,7 @@ import { createTextMeasurer } from '../lib/stitchLayout'
 import { compositionLayout, exportResource, resourceFileName } from '../lib/resourceExport'
 import { downloadBlob } from '../lib/canvas'
 import { DEFAULT_SETTINGS } from '../lib/defaults'
-import { restoreRemoved } from '../lib/operations'
+import { DATE_GROUPS, RESOURCE_SORTS, dateGroup, resourceDate, resourceLabel, sortResources, type DateGrouping, type ResourceSort } from '../lib/resourceCatalog'
 import { readResourceView, rememberResourceView, RESOURCE_COLUMNS, RESOURCE_KINDS, type ResourceKind } from '../lib/preferences'
 
 function BlobImage({ blob }: { blob: Blob }) {
@@ -25,8 +25,7 @@ type Resource = ImportedAsset | SavedComposition
 
 /** Saved compositions carry their own name; text cards are named by their text. */
 function resourceName(resource: Resource, blankText: string): string {
-  if ('blocks' in resource) return resource.name
-  return resource.type === 'photo' ? resource.name : resource.text || blankText
+  return resourceLabel(resource, blankText)
 }
 
 function resourceKindLabel(resource: Resource, t: (key: MessageKey) => string): string {
@@ -75,14 +74,24 @@ export function ResourcePanel({
 }: ResourcePanelProps) {
   const { t, locale } = useI18n()
   const [busy, setBusy] = useState(false)
+  const [exportProgress, setExportProgress] = useState('')
   const [detailId, setDetailId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   // The panel unmounts whenever another tab is opened, so the view mode is restored from storage.
-  const [view, setView] = useState(() => ({ kind: 'all' as ResourceKind, columns: 3, ...readResourceView() }))
+  const [view, setView] = useState(() => ({ kind: 'all' as ResourceKind, columns: 3, sort: 'imported-desc' as ResourceSort, group: 'imported' as DateGrouping, ...readResourceView() }))
+  const [managing, setManaging] = useState(false)
+  const [checked, setChecked] = useState<string[]>([])
+  const [now, setNow] = useState(Date.now)
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
   const panel = useRef<HTMLElement>(null)
 
   useEffect(() => { rememberResourceView(view) }, [view])
+  useEffect(() => {
+    const refresh = () => setNow(Date.now())
+    const timer = window.setInterval(refresh, 60000)
+    window.addEventListener('focus', refresh)
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh) }
+  }, [])
 
   useEffect(() => {
     if (!library.lastSavedId) return
@@ -117,9 +126,45 @@ export function ResourcePanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [library.compositions, view.kind, normalized],
   )
-  const items: Resource[] = [...visibleAssets, ...visibleSaved]
+  const sortedItems = sortResources([...visibleAssets, ...visibleSaved], view.sort, locale)
+  const groupOf = (resource: Resource) => dateGroup(resourceDate(resource, view.group === 'captured' ? 'captured' : 'imported'), now)
+  const items = view.group === 'none' ? sortedItems : DATE_GROUPS.flatMap((group) => sortedItems.filter((item) => groupOf(item) === group))
   const filtered = items.length
   const searching = !!normalized || view.kind !== 'all'
+  const toggleChecked = (id: string) => setChecked((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
+  const selectedIds = checked.filter((id) => items.some((item) => item.id === id))
+  const bulkRemove = async (ids: string[], clear = false) => {
+    if (!ids.length || busy) return
+    const ok = await confirm({ title: t(clear ? 'bulk.clearTitle' : 'bulk.deleteTitle'), body: t('bulk.deleteBody', { count: ids.length }), confirmLabel: t('resource.removeConfirm'), tone: 'danger' })
+    if (!ok) return
+    setBusy(true)
+    try {
+      const restore = await library.deleteResources(ids)
+      setChecked([])
+      onToast({ text: t('bulk.deleted', { count: ids.length }), tone: 'info', action: { label: t('common.undo'), onAction: () => { void restore().catch(() => onToast({ text: t('resource.saveError'), tone: 'warning' })) } } })
+    } catch { onToast({ text: t('resource.saveError'), tone: 'warning' }) }
+    finally { setBusy(false) }
+  }
+  const bulkExport = async (format: 'image/png' | 'image/jpeg') => {
+    if (busy || !selectedIds.length) return
+    setBusy(true)
+    try {
+      const entries: Record<string, Uint8Array> = {}
+      let size = 0
+      const selected = items.filter((item) => selectedIds.includes(item.id))
+      for (const [index, resource] of selected.entries()) {
+        setExportProgress(t('bulk.exporting', { current: index + 1, total: selected.length }))
+        const { blob } = await exportResource(resource, format)
+        size += blob.size
+        if (size > 200 * 1024 * 1024) throw new Error('export-budget')
+        entries[`${String(index + 1).padStart(3, '0')}-${resourceFileName(name(resource), format)}`] = new Uint8Array(await blob.arrayBuffer())
+      }
+      const { zipSync } = await import('fflate')
+      const archive = zipSync(entries, { level: 0 })
+      downloadBlob(new Blob([new Uint8Array(archive)], { type: 'application/zip' }), `MomentSS-${new Date().toISOString().slice(0, 10)}.zip`)
+    } catch (error) { onToast({ text: t(error instanceof Error && error.message === 'export-budget' ? 'bulk.limit' : 'resource.exportError'), tone: 'warning' }) }
+    finally { setBusy(false); setExportProgress('') }
+  }
 
   const download = async (resource: Resource, format: 'image/png' | 'image/jpeg') => {
     if (busy) return
@@ -146,12 +191,13 @@ export function ResourcePanel({
       tone: 'danger',
     })
     if (!ok) return
-    const snapshot = library.assets
-    library.setAssets((current) => current.filter((item) => item.id !== asset.id))
+    let restore: () => Promise<void>
+    try { restore = await library.deleteResources([asset.id]) }
+    catch { onToast({ text: t('resource.saveError'), tone: 'warning' }); return }
     onToast({
       text: t('resource.assetRemoved', { name: name(asset) }),
       tone: 'info',
-      action: { label: t('common.undo'), onAction: () => library.setAssets((current) => restoreRemoved(current, snapshot, [asset.id])) },
+      action: { label: t('common.undo'), onAction: () => { void restore().catch(() => onToast({ text: t('resource.saveError'), tone: 'warning' })) } },
     })
   }
 
@@ -164,11 +210,11 @@ export function ResourcePanel({
     })
     if (!ok) return
     try {
-      await library.removeComposition(composition.id)
+      const restore = await library.deleteResources([composition.id])
       onToast({
         text: t('resource.compositionRemoved', { name: composition.name }),
         tone: 'info',
-        action: { label: t('common.undo'), onAction: () => { void library.addComposition(composition) } },
+        action: { label: t('common.undo'), onAction: () => { void restore().catch(() => onToast({ text: t('resource.saveError'), tone: 'warning' })) } },
       })
     } catch { onToast({ text: t('resource.saveError'), tone: 'warning' }) }
   }
@@ -235,8 +281,8 @@ export function ResourcePanel({
 
   /** Compositions have no layer to adjust, so a click there opens the card instead. */
   const openResource = (resource: Resource) => {
-    if ('blocks' in resource) setDetailId(resource.id)
-    else onSelectAsset(resource)
+    if (managing) toggleChecked(resource.id)
+    else setDetailId(resource.id)
   }
 
   const removeFrom = (resource: Resource) => {
@@ -287,30 +333,40 @@ export function ResourcePanel({
           ))}
         </div>
       </div>
+      <div className="resource-sort-controls">
+        <label className="field"><span className="field__label">{t('sort.label')}</span><select value={view.sort} onChange={(event) => { const sort = event.currentTarget.value as ResourceSort; setView((current) => ({ ...current, sort })) }}>{RESOURCE_SORTS.map((sort) => <option key={sort} value={sort}>{t(`sort.${sort}`)}</option>)}</select></label>
+        <label className="field"><span className="field__label">{t('dates.basis')}</span><select value={view.group} onChange={(event) => { const group = event.currentTarget.value as DateGrouping; setView((current) => ({ ...current, group })) }}>{(['none', 'imported', 'captured'] as const).map((group) => <option key={group} value={group}>{t(`dates.${group}`)}</option>)}</select></label>
+      </div>
+      <div className="resource-manage-actions"><button type="button" className="secondary-button" aria-pressed={managing} onClick={() => { setManaging((value) => !value); setChecked([]) }}>{t(managing ? 'common.done' : 'bulk.manage')}</button><button type="button" className="text-button" disabled={busy || !library.assets.length} onClick={() => void bulkRemove(library.assets.map((item) => item.id), true)}>{t('bulk.clear')}</button></div>
+      {managing && <div className="resource-bulk-bar"><label><input type="checkbox" checked={!!items.length && items.every((item) => checked.includes(item.id))} onChange={(event) => setChecked(event.currentTarget.checked ? items.map((item) => item.id) : [])} />{t('bulk.selectFiltered', { count: items.length })}</label><span role="status">{exportProgress || t('bulk.selected', { count: selectedIds.length })}</span><div>{(['image/png', 'image/jpeg'] as const).map((format) => <button key={format} type="button" className="secondary-button" disabled={busy || !selectedIds.length} onClick={() => void bulkExport(format)}>{t('bulk.export', { format: format === 'image/png' ? 'PNG' : 'JPG' })}</button>)}<button type="button" className="danger-button" disabled={busy || !selectedIds.length} onClick={() => void bulkRemove(selectedIds)}>{t('bulk.delete')}</button></div></div>}
       <p className="resource-toolbar__count">{t('resource.matchCount', { count: filtered })}</p>
     </div>
 
     {items.length ? (
       <div className="asset-grid" style={{ gridTemplateColumns: `repeat(${view.columns}, minmax(0, 1fr))` }}>
-        {items.map((resource) => {
+        {items.map((resource, index) => {
           const isComposition = 'blocks' in resource
           const isText = !('blocks' in resource) && resource.type === 'text'
           const text = resourceText(resource)
           const primary = actions(resource).primary
-          return <div
-            key={resource.id}
-            className={`resource-tile ${isText ? 'resource-tile--text' : ''} ${isComposition ? 'resource-tile--collage' : ''} ${!isComposition && selectedSourceId === resource.id ? 'is-selected' : ''}`}
+          return <Fragment key={resource.id}>
+          {view.group !== 'none' && (index === 0 || groupOf(items[index - 1]) !== groupOf(resource)) && <h3 className="resource-date-heading">{t(`dates.${groupOf(resource)}`)}<span>{items.filter((item) => groupOf(item) === groupOf(resource)).length}</span></h3>}
+          <div
+            className={`resource-tile ${managing ? 'is-managing' : ''} ${isText ? 'resource-tile--text' : ''} ${isComposition ? 'resource-tile--collage' : ''} ${!isComposition && selectedSourceId === resource.id ? 'is-selected' : ''}`}
             data-composition-id={isComposition ? resource.id : undefined}
           >
+            {managing && <input className="resource-tile__check" type="checkbox" aria-label={t('bulk.selectNamed', { name: name(resource) })} checked={checked.includes(resource.id)} onChange={() => toggleChecked(resource.id)} />}
             <button type="button" className="resource-tile__open" aria-label={t('resource.selectForAdjust', { name: name(resource) })} title={name(resource)} onClick={() => openResource(resource)}>
               <span className="resource-tile__thumb">{thumbnail(resource)}</span>
             </button>
+            <span className="resource-tile__name" title={name(resource)}>{name(resource)}</span>
+            <span className="resource-tile__date" title={resource.capturedLocalTime && resource.capturedOffsetMinutes === undefined ? t('dates.noZone') : undefined}>{resourceDate(resource, view.group === 'captured' ? 'captured' : 'imported') ? new Date(resourceDate(resource, view.group === 'captured' ? 'captured' : 'imported')!).toLocaleDateString(locale, { month: 'short', day: 'numeric' }) : t('dates.unknown')}</span>
             <span className="resource-tile__caption">
               <button type="button" className="resource-tile__add" onClick={primary.run}><Plus size={13} />{primary.label}</button>
               <button type="button" className="resource-tile__eye" aria-label={t('resource.viewDetails', { name: name(resource) })} title={t('resource.view')} onClick={() => setDetailId(resource.id)}><Eye size={14} /></button>
             </span>
             {text && <p className="resource-tile__text" title={text}>{text}</p>}
-          </div>
+          </div></Fragment>
         })}
       </div>
     ) : <div className="mini-empty"><ImageIcon size={26} /><p>{searching ? t('resource.noMatch') : t('stitch.assetLibraryEmpty')}</p></div>}

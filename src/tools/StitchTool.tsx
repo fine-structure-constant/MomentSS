@@ -18,7 +18,7 @@ import {
   Trash2,
   Type,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { filesToPhotoBlocks } from '../lib/canvas'
 import { createComposition } from '../lib/resourceExport'
 import { createLayerFromAsset, findTextAsset, saveEditedAsset } from '../lib/assetLibrary'
@@ -98,7 +98,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   const stageRef = useRef<HTMLElement>(null)
   const measure = useMemo(() => createTextMeasurer(), [])
   const layout = useMemo(() => buildStitchLayout(blocks, settings, measure), [blocks, settings, measure])
-  const snapshot = useRef<{ blocks: ComposerBlock[]; settings: ComposerSettings } | null>(null)
+  const snapshot = useRef<{ blocks: ComposerBlock[]; settings: ComposerSettings; sourceCompositionId: string | null } | null>(null)
 
   const selected = useMemo(() => findComposerAsset(blocks, selectedId), [blocks, selectedId])
   const selectedRow = useMemo(() => findPhotoRow(blocks, selectedId), [blocks, selectedId])
@@ -131,15 +131,16 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   }, [layout, selected])
 
   useEffect(() => {
-    void loadStitchWorkspace()
+    void loadStitchWorkspace(library.projectId)
       .then(({ draft }) => {
-        if (!draft) return
+        if (!draft) { setHydrated(true); return }
         setBlocks(draft.blocks)
         setSettings(draft.settings)
+        setSourceCompositionId(draft.sourceCompositionId ?? null)
         setSelectedId(flattenComposerAssets(draft.blocks)[0]?.id ?? null)
+        setHydrated(true)
       })
       .catch(() => onToast({ text: t('stitch.draftReadError'), tone: 'warning' }))
-      .finally(() => setHydrated(true))
     // The draft hydrates once; changing UI language must never replace in-progress edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onToast])
@@ -160,22 +161,27 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     return () => window.clearTimeout(timer)
   }, [textPreset, overlayPreset, prefsReady])
 
+  useLayoutEffect(() => {
+    if (!hydrated) return
+    snapshot.current = { blocks, settings, sourceCompositionId }
+    library.stageDraft({ blocks, settings, sourceCompositionId, updatedAt: Date.now(), schemaVersion: 1 }, library.projectId)
+  }, [blocks, settings, sourceCompositionId, hydrated, library.stageDraft, library.projectId])
+
   useEffect(() => {
     if (!hydrated) return
-    snapshot.current = { blocks, settings }
     setSaveState('saving')
     const timer = window.setTimeout(() => {
-      void saveStitchDraft({ blocks, settings, updatedAt: Date.now() })
+      void library.persistDraft({ blocks, settings, sourceCompositionId, updatedAt: Date.now(), schemaVersion: 1 }, library.projectId)
         .then(() => setSaveState('saved'))
         .catch(() => setSaveState('error'))
     }, 650)
     return () => window.clearTimeout(timer)
-  }, [blocks, settings, hydrated])
+  }, [blocks, settings, sourceCompositionId, hydrated, library.persistDraft, library.projectId])
 
   useEffect(() => {
     return () => {
       const latest = snapshot.current
-      if (latest) void saveStitchDraft({ blocks: latest.blocks, settings: latest.settings, updatedAt: Date.now() }).catch(() => {})
+      if (latest) void library.persistDraft({ ...latest, updatedAt: Date.now(), schemaVersion: 1 }, library.projectId).catch(() => {})
     }
   }, [])
 
@@ -187,7 +193,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
 
   const handleFiles = async (files: File[]) => {
     try {
-      const photos = await filesToPhotoBlocks(files)
+      const photos = (await filesToPhotoBlocks(files)).map((photo) => ({ ...photo, taskId: library.projectId }))
       if (!photos.length) throw new Error('no readable image')
       const layers = photos.map(createLayerFromAsset)
       setAssets((current) => [...current, ...photos])
@@ -206,7 +212,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
 
   /** Inserts a text card at an explicit position; an identical card reuses its resource. */
   const insertTextAt = (index: number) => {
-    const candidate = createTextBlock(t('text.defaultCard'), textPreset)
+    const candidate = { ...createTextBlock(t('text.defaultCard'), textPreset), importedAt: Date.now(), updatedAt: Date.now(), taskId: library.projectId }
     const reusable = findTextAsset(assets, candidate)
     const layer = createLayerFromAsset(reusable ?? candidate)
     if (!reusable) setAssets((current) => [...current, candidate])
@@ -380,7 +386,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
         blocks,
         settings,
       )
-      const composition = target ? { ...created, id: target.id, name: target.name, kind: target.kind, createdAt: Date.now() } : created
+      const composition = target ? { ...created, id: target.id, name: target.name, kind: target.kind, createdAt: target.createdAt, updatedAt: Date.now() } : { ...created, updatedAt: created.createdAt }
       await library.addComposition(composition)
       setSourceCompositionId(composition.id)
       setPanelTab('import')
@@ -408,8 +414,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   }
 
   const renameAsset = (asset: ImportedAsset, name: string) => {
-    if (asset.type !== 'photo') return
-    setAssets((current) => current.map((item) => item.id === asset.id ? { ...item, name } : item))
+    setAssets((current) => current.map((item) => item.id === asset.id ? { ...item, displayName: name, updatedAt: Date.now(), ...(item.type === 'photo' ? { name } : {}) } : item))
     // Placed copies follow their resource so the layer list stays readable.
     setBlocks((current) => renamePhotosInBlocks(current, asset.id, name))
   }
@@ -426,7 +431,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     }
     try {
       await library.flushAssets()
-      await saveStitchDraft({ blocks: [], settings: DEFAULT_SETTINGS, updatedAt: Date.now() })
+      await library.persistDraft({ blocks: [], settings: DEFAULT_SETTINGS, updatedAt: Date.now(), sourceCompositionId: null, schemaVersion: 1 }, library.projectId)
     } catch {
       onToast({ text: t('stitch.saveError'), tone: 'warning' })
       return
