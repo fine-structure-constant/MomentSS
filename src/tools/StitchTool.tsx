@@ -61,6 +61,7 @@ import type { ResourceLibrary } from '../hooks/useResourceLibrary'
 import { StitchPreview } from '../components/StitchPreview'
 import type { ToastMessage } from '../components/StatusToast'
 import { useI18n } from '../i18n'
+import { restoreDeletedLayer } from '../lib/operations'
 
 interface StitchToolProps {
   onToast: (message: ToastMessage) => void
@@ -77,6 +78,8 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   const { t } = useI18n()
   const { confirm, dialog } = useConfirmDialog()
   const [blocks, setBlocks] = useState<ComposerBlock[]>([])
+  const latestBlocks = useRef(blocks)
+  latestBlocks.current = blocks
   const { assets, setAssets } = library
   const [settings, setSettings] = useState<ComposerSettings>(DEFAULT_SETTINGS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -294,7 +297,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     onToast({
       text: t('stitch.layerRemoved', { name: label }),
       tone: 'info',
-      action: { label: t('common.undo'), onAction: () => setBlocks(previous) },
+      action: { label: t('common.undo'), onAction: () => setBlocks((current) => restoreDeletedLayer(current, previous, id)) },
     })
   }
 
@@ -307,7 +310,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   }
 
   const updatePhoto = (id: string, patch: Partial<PhotoBlock>) => {
-    const photo = findComposerAsset(blocks, id)
+    const photo = findComposerAsset(latestBlocks.current, id)
     if (!photo || photo.type !== 'photo') return
     setBlocks((current) => updatePhotoInBlocks(current, id, patch))
     setAssets((current) => saveEditedAsset(current, { ...photo, ...patch, type: 'photo' }))
@@ -340,7 +343,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     onToast({
       text: t('stitch.paired'),
       tone: 'success',
-      action: { label: t('common.undo'), onAction: () => { setBlocks(previous); setSelectedId(photoId) } },
+      action: { label: t('common.undo'), onAction: () => { setBlocks((current) => splitPhotoRow(current, result.row!.id)); setSelectedId(photoId) } },
     })
   }
 

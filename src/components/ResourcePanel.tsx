@@ -13,6 +13,7 @@ import { createTextMeasurer } from '../lib/stitchLayout'
 import { compositionLayout, exportResource, resourceFileName } from '../lib/resourceExport'
 import { downloadBlob } from '../lib/canvas'
 import { DEFAULT_SETTINGS } from '../lib/defaults'
+import { restoreRemoved } from '../lib/operations'
 import { readResourceView, rememberResourceView, RESOURCE_COLUMNS, RESOURCE_KINDS, type ResourceKind } from '../lib/preferences'
 
 function BlobImage({ blob }: { blob: Blob }) {
@@ -150,7 +151,7 @@ export function ResourcePanel({
     onToast({
       text: t('resource.assetRemoved', { name: name(asset) }),
       tone: 'info',
-      action: { label: t('common.undo'), onAction: () => library.setAssets(snapshot) },
+      action: { label: t('common.undo'), onAction: () => library.setAssets((current) => restoreRemoved(current, snapshot, [asset.id])) },
     })
   }
 
