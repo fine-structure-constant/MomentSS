@@ -1,0 +1,25 @@
+.research-report header { padding: 32px 0; }
+.research-report header h1 { margin: 18px 0 12px; font-size: 36px; line-height: 1.2; }
+.research-report header a { color: #a8e5ed; }
+.research-report main { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start; padding-top: 32px; }
+.report-toc { position: sticky; top: 20px; max-height: calc(100dvh - 40px); overflow-y: auto; padding-right: 8px; font-size: 13px; }
+.report-toc h2 { margin: 0 0 12px; font-size: 18px; }
+.report-toc ul { list-style: none; padding-left: 0; }
+.report-toc ul ul { padding-left: 12px; }
+.report-toc li { margin: 8px 0; }
+.research-report article { min-width: 0; }
+.research-report article h2 { margin: 40px 0 18px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 25px; line-height: 1.35; scroll-margin-top: 16px; }
+.research-report article h3 { margin: 28px 0 12px; font-size: 19px; line-height: 1.4; }
+.research-report article p, .research-report article li { max-width: 85ch; font-size: 15px; line-height: 1.9; overflow-wrap: anywhere; }
+.report-table { overflow-x: auto; margin: 20px 0; }
+.report-table table { min-width: 620px; box-shadow: none; font-size: 13px; line-height: 1.7; }
+.report-table th, .report-table td { padding: 12px; }
+.research-report pre { overflow-x: auto; padding: 18px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-size: 12px; line-height: 1.8; }
+.research-report :not(pre) > code { padding: 1px 4px; color: #163b5d; background: #e7f2f3; border-radius: 3px; }
+.report-captures { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.report-captures figure { margin: 0; }
+.report-captures img { display: block; width: 100%; max-height: 400px; object-fit: contain; object-position: top; background: #fff; border: 1px solid var(--line); }
+.report-captures figcaption { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+@media (max-width: 900px) { .research-report main { display: block; } .report-toc { position: static; max-height: none; margin-bottom: 32px; } .report-toc ul ul { display: none; } .research-report header h1 { font-size: 30px; } }
+@media (max-width: 600px) { .report-captures { grid-template-columns: 1fr; } }
+@media print { .report-toc { display: none; } .research-report main { display: block; } .report-table table { min-width: 0; } .report-table { overflow: visible; } }

@@ -1,0 +1,156 @@
+{
+  "viewport": "1440x960",
+  "errors": [],
+  "resourceOrder": [
+    "IMG_003.svg",
+    "IMG_001.svg",
+    "IMG_002.svg"
+  ],
+  "resourceControls": "搜索资源\n全部\n图片\n文字\n长图\n\n3 项",
+  "resourceButtons": [
+    "添加照片",
+    "文字卡片",
+    "全部",
+    "图片",
+    "文字",
+    "长图",
+    "每行 2 个",
+    "每行 3 个",
+    "每行 4 个",
+    "选中“IMG_003.svg”进行调整",
+    "加入画布",
+    "查看详情：IMG_003.svg",
+    "选中“IMG_001.svg”进行调整",
+    "加入画布",
+    "查看详情：IMG_001.svg",
+    "选中“IMG_002.svg”进行调整",
+    "加入画布",
+    "查看详情：IMG_002.svg"
+  ],
+  "assetMetadata": [
+    {
+      "name": "IMG_003.svg",
+      "fields": [
+        "id",
+        "type",
+        "name",
+        "blob",
+        "width",
+        "height"
+      ],
+      "blobClass": "File",
+      "retainedFileModified": 1578009600000
+    },
+    {
+      "name": "IMG_001.svg",
+      "fields": [
+        "id",
+        "type",
+        "name",
+        "blob",
+        "width",
+        "height"
+      ],
+      "blobClass": "File",
+      "retainedFileModified": 1577836800000
+    },
+    {
+      "name": "IMG_002.svg",
+      "fields": [
+        "id",
+        "type",
+        "name",
+        "blob",
+        "width",
+        "height"
+      ],
+      "blobClass": "File",
+      "retainedFileModified": 1577923200000
+    }
+  ],
+  "layerButtonCount": 5,
+  "layerDrag": {
+    "draggable": true,
+    "nestedButtons": 5
+  },
+  "layerButtons": [
+    {
+      "label": "移到最前",
+      "width": 28,
+      "height": 30
+    },
+    {
+      "label": "上移",
+      "width": 28,
+      "height": 30
+    },
+    {
+      "label": "下移",
+      "width": 28,
+      "height": 30
+    },
+    {
+      "label": "移到最后",
+      "width": 28,
+      "height": 30
+    },
+    {
+      "label": "从画布移除",
+      "width": 28,
+      "height": 30
+    }
+  ],
+  "fontComparison": [
+    {
+      "family": "ui-rounded, \"PingFang SC\", \"Microsoft YaHei UI\", sans-serif",
+      "width": 288
+    },
+    {
+      "family": "\"Avenir Next\", \"PingFang SC\", \"Microsoft YaHei UI\", sans-serif",
+      "width": 288
+    }
+  ],
+  "sameChineseFontPixels": true,
+  "emojiPlacement": {
+    "inlineInContent": true,
+    "position": "static",
+    "right": 1407,
+    "width": 336
+  },
+  "mobile": {
+    "overflow": false,
+    "actions": [
+      {
+        "label": "移到最前",
+        "width": 0,
+        "height": 0
+      },
+      {
+        "label": "上移",
+        "width": 0,
+        "height": 0
+      },
+      {
+        "label": "下移",
+        "width": 28,
+        "height": 30
+      },
+      {
+        "label": "移到最后",
+        "width": 28,
+        "height": 30
+      },
+      {
+        "label": "从画布移除",
+        "width": 28,
+        "height": 30
+      }
+    ]
+  },
+  "screenshots": [
+    "study-resources-desktop.png",
+    "study-layers-desktop.png",
+    "study-emoji-desktop.png",
+    "study-layers-mobile.png"
+  ]
+}
