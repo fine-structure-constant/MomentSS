@@ -29,6 +29,7 @@ test('sort/filter/select all matches and export a resource ZIP', async ({ page }
   await page.getByRole('button', { name: '多选管理', exact: true }).click()
   await page.getByRole('checkbox', { name: '选择全部 3 个筛选结果', exact: true }).check()
   await page.getByRole('button', { name: '按此顺序添加 3 个素材', exact: true }).click()
+  await saved(page)
   const downloadEvent = page.waitForEvent('download')
   await page.getByRole('button', { name: '打包 PNG', exact: true }).click()
   const download = await downloadEvent

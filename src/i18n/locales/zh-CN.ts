@@ -184,6 +184,8 @@ export const zhCN = {
   'cover.bottomBlank': '底部补白',
   'cover.autoBalanceHint': '自动补足上下留白，让封面正好位于整张图的中心。原图层保持完整。',
   'cover.saveResource': '保存封面长图',
+  'cover.saveAsNew': '另存为新封面',
+  'cover.updateResource': '更新这张封面',
   'cover.savedResource': '封面长图已保存到资源。',
   'cover.exportFromResources': '保存后在“资源”中导出 PNG 或 JPG。',
   'upload.reading': '正在读取…',

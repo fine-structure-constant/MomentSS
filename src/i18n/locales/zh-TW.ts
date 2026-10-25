@@ -186,6 +186,8 @@ export const zhTW = {
   'cover.bottomBlank': '底部補白',
   'cover.autoBalanceHint': '自動補足上下留白，讓封面正好位於整張圖的中心。原圖層保持完整。',
   'cover.saveResource': '儲存封面長圖',
+  'cover.saveAsNew': '另存為新封面',
+  'cover.updateResource': '更新這張封面',
   'cover.savedResource': '封面長圖已儲存到資源。',
   'cover.exportFromResources': '儲存後在「資源」中匯出 PNG 或 JPG。',
   'upload.reading': '正在讀取…',

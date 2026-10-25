@@ -186,6 +186,8 @@ export const en = {
   'cover.bottomBlank': 'Added bottom space',
   'cover.autoBalanceHint': 'Outer whitespace automatically puts the cover at the exact center. Original layers remain intact.',
   'cover.saveResource': 'Save cover collage',
+  'cover.saveAsNew': 'Save as a new cover',
+  'cover.updateResource': 'Update this cover',
   'cover.savedResource': 'Cover collage saved to Resources.',
   'cover.exportFromResources': 'Export PNG or JPG from Resources after saving.',
   'upload.reading': 'Reading…',

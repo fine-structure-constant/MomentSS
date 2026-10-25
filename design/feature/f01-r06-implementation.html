@@ -18,8 +18,8 @@
 <article class="direction"><h3>图层管理</h3><a href="../src/previews/f01-r06/layers-desktop.png"><img src="../src/previews/f01-r06/layers-desktop.png" alt="桌面选中图层的操作分组" loading="lazy"></a></article>
 <article class="direction"><h3>图片富文本</h3><a href="../src/previews/f01-r06/photo-text-desktop.png"><img src="../src/previews/f01-r06/photo-text-desktop.png" alt="标题和局部粗体在图片上的共享结构化预览" loading="lazy"></a></article>
 <article class="direction"><h3>390px 手机</h3><a href="../src/previews/f01-r06/layers-mobile.png"><img src="../src/previews/f01-r06/layers-mobile.png" alt="手机图层和上下移动按钮，保存提示避开底部按钮" loading="lazy"></a></article></div></section>
-<section><h2>复现与实际边界</h2><p>npm test：80 项通过；npm run build 通过。浏览器回归：22 项，其中 21 项通过，桌面不适用的触屏专项跳过，手机专项通过。部署 Python：Windows 12 项通过，Linux 符号链接专项交给 CI。npm run test:ui；本机 npm 参数转发差异时用 node node_modules/@playwright/test/cli.js test --workers=2。截图用 node scripts/capture_editor.mjs，须先在 4185 启动本地 Vite。</p>
+<section><h2>复现与实际边界</h2><p>npm test：80 项通过；npm run build 通过。浏览器回归：24 项，其中 23 项通过，桌面不适用的触屏专项跳过，手机专项通过。新增封面更新保持身份、清理素材后仍能导出富文本成品的桌面/手机回归。部署 Python：Windows 12 项通过，Linux 符号链接专项交给 CI。npm run test:ui；本机 npm 参数转发差异时用 node node_modules/@playwright/test/cli.js test --workers=2。截图用 node scripts/capture_editor.mjs，须先在 4185 启动本地 Vite。</p>
 <p>字体源和许可证见 <a href="../../public/fonts/sources.json">sources.json</a>。两份全字符集文件共约 10.33MB，按使用加载；400 字重，粗体由浏览器合成；系统宋体/楷体/Emoji 不跨设备保证一致。富文本编辑器、EXIF、ZIP、HEIF 均拆分按需加载。</p>
 <p>manual check remaining：真实 iPhone 软键盘与中文 IME、200 张真实相册性能、真实 HEIC 拍摄日期覆盖、多标签并发编辑、所有存储配额失败路径。浏览器仿真不能代替这些验证。全局撤销/重做、回收站、备份、浮动/多风格 Emoji 与更多 F 项未纳入本次交付。</p></section>
-<section><h2>发布验证</h2><p>工作分支先运行 GitHub Check；通过后推进 main，发布工作流再次验证并生成完整部署包。在线验证依据 /version.json 的 commit、页面及字体加载；不把 Release 发布等同于服务器已更新。最终工作流和线上版本结果见本次交付记录。</p></section>
+<section><h2>发布验证</h2><p>工作分支先运行 GitHub Check；通过后推进 main，发布工作流再次验证并生成完整部署包。首轮 Linux 检查发现排序回归在草稿保存前立即刷新，测试已增加“本地草稿已保存”的明确等待；保存期间不把刷新视为已完成写盘。封面保存同步补齐更新/另存与当前目标提示，跨任务时丢弃失效的封面来源 ID。在线验证依据 /version.json 的 commit、页面及字体加载；不把 Release 发布等同于服务器已更新。最终工作流和线上版本结果见本次交付记录。</p></section>
 </main></body></html>

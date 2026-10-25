@@ -1,4 +1,4 @@
-import { FolderOpen, Save, SquareDashed } from 'lucide-react'
+import { CopyPlus, FolderOpen, Save, SquareDashed } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CoverRecipe, CropState, PhotoBlock } from '../types'
 import type { ResourceLibrary } from '../hooks/useResourceLibrary'
@@ -23,7 +23,7 @@ interface CoverToolProps {
 
 export function CoverTool({ library, initialCompositionId, onResources, onToast }: CoverToolProps) {
   const { t } = useI18n()
-  const [compositionId, setCompositionId] = useState(initialCompositionId ?? library.compositions[0]?.id ?? '')
+  const [compositionId, setCompositionId] = useState(() => library.compositions.some((item) => item.id === initialCompositionId) ? initialCompositionId! : library.compositions[0]?.id ?? '')
   const [photoId, setPhotoId] = useState('')
   const [crop, setCrop] = useState<CropState>(DEFAULT_CROP)
   const [insertAt, setInsertAt] = useState(0)
@@ -67,12 +67,13 @@ export function CoverTool({ library, initialCompositionId, onResources, onToast 
     setPhotoId(id)
     setCrop(next ? { zoom: next.cropZoom ?? 1, x: next.cropX ?? 0, y: next.cropY ?? 0 } : DEFAULT_CROP)
   }
-  const saveCover = async () => {
+  const saveCover = async (mode: 'copy' | 'update') => {
     if (!composition || !recipe || busy) return
     setBusy(true)
     try {
       const saved = await createComposition(t('resource.coverName', { number: library.compositions.length + 1 }), composition.blocks, composition.settings, recipe)
-      await library.addComposition(saved)
+      const target = mode === 'update' && composition.kind === 'cover' ? composition : null
+      await library.addComposition(target ? { ...saved, id: target.id, name: target.name, createdAt: target.createdAt, updatedAt: Date.now() } : { ...saved, updatedAt: saved.createdAt })
       onToast({ text: t('cover.savedResource'), tone: 'success' })
       onResources()
     } catch { onToast({ text: t('resource.saveError'), tone: 'warning' }) }
@@ -95,6 +96,7 @@ export function CoverTool({ library, initialCompositionId, onResources, onToast 
     </section>
     <main ref={stage} className="cover-composer__stage">
       <div className="panel-heading"><div><h2>{t('cover.composeTitle')}</h2><p>{t('cover.composeHint')}</p></div>{result && <button type="button" className="secondary-button" onClick={() => { setSelectedId(result.coverId); setFocusedId(result.coverId) }}>{t('cover.inspectCover')}</button>}</div>
+      {(fontState.loading || fontState.error) && <p role="status" className="font-status">{t(fontState.error ? 'font.error' : 'font.loading')}</p>}
       {result ? <StitchPreview layout={result.layout} background={background} measure={measure} selectedId={selectedId} focusedId={focusedId}
         onSelect={(id, focus) => { setSelectedId(id); setFocusedId(focus) }} onFocus={setFocusedId} />
         : <div className="cover-composer__empty"><SquareDashed size={34} /><h2>{t('cover.resourceEmptyTitle')}</h2><p>{t('cover.resourceEmptyBody')}</p><button type="button" className="primary-button" onClick={onResources}><FolderOpen size={17} />{t('resource.open')}</button></div>}
@@ -111,7 +113,12 @@ export function CoverTool({ library, initialCompositionId, onResources, onToast 
       </FieldGroup>}
       {photo && <FieldGroup title={t('cover.cropTitle')}><CropEditor source={photo} crop={crop} onChange={setCrop} aspect={1} title={t('cover.cropTitle')} hint={t('cover.cropHint')} /></FieldGroup>}
       {coverPlacement && <FieldGroup title={t('cover.previewTitle')}><PhotoPlacementPreview placement={coverPlacement} measure={measure} /><p className="honest-note">{t('cover.caveat')}</p></FieldGroup>}
-      <div className="cover-save-actions"><button type="button" className="primary-button wide-button" disabled={!result || busy} onClick={() => void saveCover()}><Save size={17} />{t(busy ? 'resource.saving' : 'cover.saveResource')}</button><p>{t('cover.exportFromResources')}</p></div>
+      <div className="cover-save-actions">
+        {composition?.kind === 'cover' && <p className="save-target">{t('resource.editingNamed', { name: composition.name })}</p>}
+        <div className="save-actions">{composition?.kind === 'cover' && <button type="button" className="secondary-button" disabled={!result || busy} onClick={() => void saveCover('copy')}><CopyPlus size={17} />{t('cover.saveAsNew')}</button>}
+          <button type="button" className="primary-button" disabled={!result || busy} onClick={() => void saveCover(composition?.kind === 'cover' ? 'update' : 'copy')}><Save size={17} />{t(busy ? 'resource.saving' : composition?.kind === 'cover' ? 'cover.updateResource' : 'cover.saveResource')}</button></div>
+        <p>{t('cover.exportFromResources')}</p>
+      </div>
     </aside>
   </div>
 }
