@@ -1,0 +1,26 @@
+{
+  "undoAfterAddingText": {
+    "beforeUndo": {
+      "assets": [
+        "text"
+      ],
+      "blocks": [
+        "photo",
+        "text"
+      ]
+    },
+    "afterUndo": {
+      "assets": [
+        "photo"
+      ],
+      "blocks": [
+        "photo",
+        "text"
+      ]
+    }
+  },
+  "corruptBatch": {
+    "resources": 0,
+    "toast": "图片读取或转换失败。请确认文件完整，或改用 JPG、PNG、WebP、AVIF。"
+  }
+}
