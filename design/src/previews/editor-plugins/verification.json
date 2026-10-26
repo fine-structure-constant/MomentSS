@@ -1,0 +1,16 @@
+[
+  {
+    "name": "desktop",
+    "editableMs": 180,
+    "errors": [],
+    "optionalRequests": [],
+    "overflow": false
+  },
+  {
+    "name": "mobile",
+    "editableMs": 284,
+    "errors": [],
+    "optionalRequests": [],
+    "overflow": false
+  }
+]

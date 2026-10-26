@@ -1,6 +1,7 @@
 import assets from './emojiAssets.json'
 import { splitGraphemes } from './textInput'
 import type { TextAppearance } from '../types'
+import { loadFeature } from './featurePlugins'
 
 export const EMOJI_STYLES = ['native', 'twemoji-v17', 'fluent-v1'] as const
 const images = new Map<string, HTMLImageElement>()
@@ -16,10 +17,10 @@ export function emojiUrls(styles: TextAppearance[]): string[] {
 export async function ensureEmojiArt(styles: TextAppearance[]): Promise<void> {
   if (typeof Image === 'undefined') return
   await Promise.all(emojiUrls(styles).map((url) => {
-    if (!pending.has(url)) pending.set(url, (async () => {
+    if (!pending.has(url)) pending.set(url, loadFeature(url.includes('/fluent') ? 'emoji-fluent' : 'emoji-twemoji', async () => {
       const image = new Image(); image.src = url
       await image.decode(); images.set(url, image)
-    })().catch((error) => { pending.delete(url); throw error }))
+    }, url).catch((error) => { pending.delete(url); throw error }))
     return pending.get(url)
   }))
 }

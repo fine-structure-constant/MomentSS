@@ -1,3 +1,4 @@
+import { PluginPanel } from './PluginPanel'
 import { Archive, Copy, FolderOpen, Pencil, Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import type { ResourceLibrary } from '../hooks/useResourceLibrary'
@@ -25,7 +26,7 @@ export function ProjectManager({ library, onToast }: { library: ResourceLibrary;
     <label><FolderOpen size={17} aria-hidden="true" /><span className="visually-hidden">{t('project.current')}</span><select value={library.projectId} disabled={busy || library.switching} onChange={(event) => { const id = event.currentTarget.value; void perform(() => library.switchProject(id)) }}>{library.projects.filter((project) => !project.archivedAt).map((project) => <option key={project.id} value={project.id}>{label(project)}</option>)}</select></label>
     <button type="button" className="icon-button" aria-label={t('project.create')} title={t('project.create')} disabled={busy || library.switching} onClick={() => void perform(() => library.createProject(t('project.newName', { number: library.projects.length + 1 })))}><Plus size={18} /></button>
     <button type="button" className="text-button" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{t('project.manage')}</button>
-    <OfflinePanel library={library} />
+    <OfflinePanel library={library} /><PluginPanel />
     {open && active && <div className="project-manager__panel">
       <div className="panel-heading"><strong>{t('project.manage')}</strong><button type="button" className="icon-button" aria-label={t('common.close')} onClick={() => setOpen(false)}><X size={16} /></button></div>
       {renaming ? <form className="project-rename" onSubmit={(event) => { event.preventDefault(); if (name.trim()) void perform(async () => { await library.updateProject({ ...active, name: name.trim().slice(0, 80), updatedAt: Date.now() }); setRenaming(false) }) }}><input autoFocus aria-label={t('project.name')} value={name} maxLength={80} onChange={(event) => setName(event.currentTarget.value)} /><button className="secondary-button" type="submit" disabled={busy || !name.trim()}>{t('common.done')}</button></form>

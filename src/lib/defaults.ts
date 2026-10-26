@@ -1,4 +1,5 @@
 import type { ComposerSettings, CropState, PhotoOverlay, TextAppearance, TextBlock } from '../types'
+import { SYSTEM_FONT } from './fonts'
 
 export const DEFAULT_SETTINGS: ComposerSettings = {
   width: 1080,
@@ -14,7 +15,7 @@ export const DEFAULT_CROP: CropState = { zoom: 1, x: 0, y: 0 }
 const DEFAULT_TEXT_STYLE: Omit<TextBlock, 'id' | 'type' | 'text' | 'padding'> = {
   color: '#10223d',
   background: '#fff8f2',
-  fontFamily: '"MomentRounded-v1", sans-serif',
+  fontFamily: SYSTEM_FONT,
   fontSize: 58,
   fontWeight: 600,
   italic: false,
@@ -26,7 +27,7 @@ const DEFAULT_TEXT_STYLE: Omit<TextBlock, 'id' | 'type' | 'text' | 'padding'> = 
 const DEFAULT_OVERLAY_STYLE: Omit<PhotoOverlay, 'text' | 'x' | 'y' | 'position'> = {
   color: '#ffffff',
   background: '#10223d',
-  fontFamily: '"MomentRounded-v1", sans-serif',
+  fontFamily: SYSTEM_FONT,
   fontSize: 54,
   fontWeight: 600,
   italic: false,

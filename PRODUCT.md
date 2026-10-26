@@ -82,3 +82,11 @@ No logo, production photography, testimonials, benchmarks, or commercial claims 
 ## Accessibility & Inclusion
 
 Keyboard operability, visible focus, readable contrast, semantic labels, touch targets of at least 44px, and reduced-motion support are required. Export actions must not rely on color alone.
+
+## Optional features and immediate text input (2026-10-26)
+
+- Plain text input belongs to the core application. New text uses system fonts; keep saved fonts and mixed-format JSON unchanged. Loading advanced formatting must not interrupt an active basic input session.
+- Advanced text and Markdown are separate optional loaders. Contain import and render errors locally, retain drafts, and require explicit confirmation before converting mixed formatting to plain text. Markdown remains a JSON input adapter.
+- Extensions provide opt-in settings, shared request deduplication, download progress, retry and cache removal. HEIC is off by default; retain pending files and offer enable-and-retry without losing valid batch imports.
+- Automatic offline installation fetches core assets only. Explicit offline preparation includes enabled extension packs; validate the selected files before displaying readiness. Preserve the optional cache across app updates, prune obsolete hashed chunks and contain old manifest schemas.
+- Keep the task selector native and progressively enhance its menu. Group layer selection/insertion and style transfer into a compact two-column toolbar with full accessible labels and touch targets.

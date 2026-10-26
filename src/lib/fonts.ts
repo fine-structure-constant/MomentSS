@@ -1,7 +1,11 @@
 import type { ComposerBlock, RichTextNode, TextAppearance } from '../types'
 import { ensureEmojiArt } from './emojiArt'
+import { loadFeature } from './featurePlugins'
+
+export const SYSTEM_FONT = 'system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
 
 export const FONT_OPTIONS = [
+  { label: 'text.fontSystem', value: SYSTEM_FONT, family: null },
   { label: 'text.fontRounded', value: '"MomentRounded-v1", sans-serif', family: 'MomentRounded-v1' },
   { label: 'text.fontSans', value: '"MomentSans-v1", sans-serif', family: 'MomentSans-v1' },
   { label: 'text.fontSerif', value: '"Songti SC", SimSun, serif', family: null },
@@ -24,7 +28,7 @@ export async function ensureTextFonts(styles: TextAppearance[]): Promise<void> {
     const entry = FONT_OPTIONS.find((font) => font.family && family.includes(font.family))
     if (!entry?.family) return
     if (!loaded.has(entry.family)) {
-      const promise = document.fonts.load(`400 16px "${entry.family}"`, '旅途 Aa').then((faces) => {
+      const promise = loadFeature(entry.family === 'MomentRounded-v1' ? 'font-rounded' : 'font-sans', () => document.fonts.load(`400 16px "${entry.family}"`, '旅途 Aa')).then((faces) => {
         if (!faces.length) throw new Error('font-unavailable')
       }).catch((error) => { loaded.delete(entry.family!); throw error })
       loaded.set(entry.family, promise)

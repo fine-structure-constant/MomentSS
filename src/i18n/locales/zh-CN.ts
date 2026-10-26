@@ -1,6 +1,8 @@
+import { pluginsCN } from './plugins'
 import { advancedCN } from './advanced'
 export const zhCN = {
   ...advancedCN,
+  ...pluginsCN,
   'layer.insertAfter': '在所选图层后插入文字',
   'layer.insertBefore': '在此图层前插入',
   'layer.duplicate': '复制图层',

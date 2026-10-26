@@ -1,4 +1,5 @@
 import type { ResourceMetadata } from '../types'
+import { loadFeature } from './featurePlugins'
 
 export function parseCaptureTime(value: unknown, offset: unknown): Pick<ResourceMetadata, 'capturedAt' | 'capturedLocalTime' | 'capturedOffsetMinutes'> {
   if (typeof value !== 'string') return {}
@@ -20,7 +21,7 @@ export async function readPhotoMetadata(file: File): Promise<ResourceMetadata> {
   const metadata: ResourceMetadata = { originalName: file.name, importedAt: Date.now(), fileModifiedAt: file.lastModified > 0 ? file.lastModified : undefined }
   if (!/\.(jpe?g|heic|heif|hif|png|avif)$/i.test(file.name) && !/^image\/(jpeg|heic|heif|png|avif)$/.test(file.type)) return metadata
   try {
-    const { parse } = await import('exifr')
+    const { parse } = await loadFeature('photo-metadata', () => import('exifr'))
     const exif = await parse(file, { pick: ['DateTimeOriginal', 'OffsetTimeOriginal', 'CreateDate'], reviveValues: false, gps: false })
     return { ...metadata, ...parseCaptureTime(exif?.DateTimeOriginal ?? exif?.CreateDate, exif?.OffsetTimeOriginal) }
   } catch { return metadata }

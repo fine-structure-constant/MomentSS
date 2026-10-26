@@ -1,3 +1,4 @@
+import { pluginErrorId } from './featurePlugins'
 import type {
   ComposerBlock,
   ComposerSettings,
@@ -376,7 +377,7 @@ export function downloadBlob(blob: Blob, fileName: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 2_000)
 }
 
-export interface ImportProgress { current: number; total: number; failures: Array<{ file: File; reason: 'unsupported' | 'decode' }>; cancelled: boolean }
+export interface ImportProgress { current: number; total: number; failures: Array<{ file: File; reason: 'unsupported' | 'decode' | 'plugin' }>; cancelled: boolean }
 export async function filesToPhotoBlocks(files: File[], options: { signal?: AbortSignal; onProgress?: (progress: ImportProgress) => void } = {}): Promise<PhotoBlock[]> {
   const photos: PhotoBlock[] = []
   const batchId = crypto.randomUUID()
@@ -402,7 +403,7 @@ export async function filesToPhotoBlocks(files: File[], options: { signal?: Abor
       batchId,
       importOrder: index,
     })
-    } catch { progress.failures.push({ file, reason: 'decode' }) }
+    } catch (error) { progress.failures.push({ file, reason: pluginErrorId(error) ? 'plugin' : 'decode' }) }
     finally { progress.current = index + 1; options.onProgress?.({ ...progress, failures: [...progress.failures] }) }
   }
   progress.cancelled ||= !!options.signal?.aborted

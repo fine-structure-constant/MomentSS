@@ -1,8 +1,10 @@
+import { pluginsTW } from './plugins'
 import type { MessageKey } from '../types'
 import { advancedTW } from './advanced'
 
 export const zhTW = {
   ...advancedTW,
+  ...pluginsTW,
   'layer.insertAfter': '在所選圖層後插入文字',
   'layer.insertBefore': '在此圖層前插入',
   'layer.duplicate': '複製圖層',

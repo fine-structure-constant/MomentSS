@@ -1,3 +1,4 @@
+import { installPlugin, pluginErrorId } from '../lib/featurePlugins'
 import { Download, Grid2X2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { downloadBlob, exportGridTiles, fileToSourceImage, inspectImage } from '../lib/canvas'
@@ -17,6 +18,7 @@ export function GridTool({ onToast, library }: { onToast: (message: ToastMessage
   const { t } = useI18n()
   const [state, setState] = useState<GridState>({ source: null, crop: DEFAULT_CROP, count: 9, size: 1440, format: 'image/jpeg', sourceId: '' })
   const [ready, setReady] = useState(false), [busy, setBusy] = useState(false), [tiles, setTiles] = useState<Blob[]>([])
+  const [pendingHeic, setPendingHeic] = useState<File | null>(null)
   const latest = useRef(state); latest.current = state
   const queue = useRef(Promise.resolve())
   const write = (value: GridState) => { queue.current = queue.current.catch(() => {}).then(() => saveToolState('grid', library.projectId, value)); return queue.current }
@@ -47,9 +49,10 @@ export function GridTool({ onToast, library }: { onToast: (message: ToastMessage
     } catch { onToast({ text: t('grid.readError'), tone: 'warning' }) } finally { setBusy(false) }
   }
   const handleFiles = async (files: File[]) => {
-    if (!files[0]) return
+    if (!files[0] || busy) return
+    setBusy(true); setPendingHeic(null)
     try { const source = await fileToSourceImage(files[0]); setState((value) => ({ ...value, source, sourceId: '', crop: DEFAULT_CROP })) }
-    catch { onToast({ text: t('grid.readError'), tone: 'warning' }) }
+    catch (error) { if (pluginErrorId(error)) setPendingHeic(files[0]); else onToast({ text: t('grid.readError'), tone: 'warning' }) } finally { setBusy(false) }
   }
   const create = async (): Promise<Blob[]> => {
     if (!state.source || busy) return []
@@ -77,6 +80,7 @@ export function GridTool({ onToast, library }: { onToast: (message: ToastMessage
     <aside className="grid-actions">
       <label className="field"><span className="field__label">{t('grid.source')}</span><select disabled={busy} value={state.sourceId} onChange={(event) => void choose(event.currentTarget.value)}><option value="">{t('grid.chooseSource')}</option>{sources.map((source) => <option key={source.id} value={source.id}>{source.displayName || source.name}</option>)}</select></label>
       <UploadDropzone compact onFiles={handleFiles} label={t('grid.choose')} />
+      {pendingHeic && <div className="import-status"><p>{pendingHeic.name} — {t('plugins.required')}</p><button className="secondary-button" disabled={busy} onClick={async () => { try { await installPlugin('heic'); await handleFiles([pendingHeic]) } catch { onToast({ text: t('plugins.error'), tone: 'warning' }) } }}>{t('plugins.enableHeic')}</button></div>}
       <div className="count-picker" aria-label={t('grid.countAria')}>{([4, 6, 9] as const).map((count) => <button type="button" key={count} aria-pressed={state.count === count} className={state.count === count ? 'is-active' : ''} onClick={() => setState({ ...state, count })}><strong>{count}</strong></button>)}</div>
       <label className="field"><span className="field__label">{t('grid.size')}</span><select value={state.size} onChange={(event) => setState({ ...state, size: Number(event.currentTarget.value) })}>{[720, 1080, 1440, 2160].map((size) => <option key={size} value={size}>{size}px</option>)}</select></label>
       <label className="field"><span className="field__label">{t('grid.format')}</span><select value={state.format} onChange={(event) => setState({ ...state, format: event.currentTarget.value as GridState['format'] })}><option value="image/jpeg">JPG</option><option value="image/png">PNG</option></select></label>

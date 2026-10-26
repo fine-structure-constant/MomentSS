@@ -1,3 +1,4 @@
+import { PluginRequiredError, setPluginEnabled } from './featurePlugins'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { IMAGE_ACCEPT, isHeifFile, isImportableImage, prepareImageFile } from './imageImport'
 
@@ -13,7 +14,7 @@ function container(major: string, compatible: string[] = []): Uint8Array<ArrayBu
 }
 
 describe('HEIF image imports', () => {
-  beforeEach(() => { convert.mockReset() })
+  beforeEach(() => { convert.mockReset(); setPluginEnabled('heic', true) })
 
   it('accepts Apple filename extensions and MIME types, including empty or generic MIME', async () => {
     for (const name of ['IMG_0001.HEIC', 'photo.heif', 'photo.hif', 'burst.heics', 'burst.heifs']) {
@@ -36,6 +37,12 @@ describe('HEIF image imports', () => {
     const file = new File([container('mif1', ['avif'])], 'photo.avif', { type: 'image/avif' })
     expect(await isHeifFile(file)).toBe(false)
     expect(await prepareImageFile(file)).toBe(file)
+    expect(convert).not.toHaveBeenCalled()
+  })
+
+  it('requires an explicit opt-in before loading a HEIC converter', async () => {
+    setPluginEnabled('heic', false)
+    await expect(prepareImageFile(new File(['heic'], 'photo.heic'))).rejects.toBeInstanceOf(PluginRequiredError)
     expect(convert).not.toHaveBeenCalled()
   })
 

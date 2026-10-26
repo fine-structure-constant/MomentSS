@@ -21,7 +21,7 @@ test('white text is legible only in the editor, floating emoji restores selectio
   await picker.getByRole('button', { name: /^插入 🌊：/ }).click()
   await expect(editor).toBeFocused()
   await page.keyboard.type('abc')
-  await expect(editor).toContainText('白色文字🌊abc')
+  await expect(editor).toHaveValue('白色文字🌊abc')
   await expect(modal.locator('svg image[href*="twemoji-v17"]')).toBeVisible()
   await modal.getByRole('button', { name: 'Emoji', exact: true }).click()
   await picker.getByRole('searchbox').press('Escape')
@@ -55,7 +55,7 @@ test('project package restores independently, and a second tab cannot overwrite 
   await second.goto('/')
   await expect(second.getByText(/此工作区正在另一个标签页编辑/)).toBeVisible()
   await page.close()
-  await second.reload()
+  await second.goto('/')
   await expect(second.locator('.resource-tile')).toHaveCount(1)
 })
 

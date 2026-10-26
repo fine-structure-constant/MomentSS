@@ -4,7 +4,7 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { TextStyleKit } from '@tiptap/extension-text-style'
 import TextAlign from '@tiptap/extension-text-align'
-import { Markdown } from '@tiptap/markdown'
+import { installPlugin, loadFeature } from '../lib/featurePlugins'
 import type { RichTextDocument, TextAppearance } from '../types'
 import { useI18n } from '../i18n'
 import { FONT_OPTIONS } from '../lib/fonts'
@@ -18,12 +18,13 @@ export default function RichTextEditor({ value, onChange }: { value: TextAppeara
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [markdownOpen, setMarkdownOpen] = useState(false)
   const [markdown, setMarkdown] = useState('')
+  const [parsing, setParsing] = useState(false), [parseError, setParseError] = useState(false)
   const id = useId()
   const selection = useRef<{ from: number; to: number } | null>(null)
   const sizeInput = useRef<HTMLInputElement>(null)
   const emojiAnchor = useRef<HTMLButtonElement>(null)
   const [sizeDraft, setSizeDraft] = useState(String(value.fontSize))
-  const extensions = useMemo(() => [StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, codeBlock: false, code: false, horizontalRule: false }), TextStyleKit.configure({ backgroundColor: false, lineHeight: false }), TextAlign.configure({ types: ['paragraph', 'heading'] }), Markdown], [])
+  const extensions = useMemo(() => [StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, codeBlock: false, code: false, horizontalRule: false }), TextStyleKit.configure({ backgroundColor: false, lineHeight: false }), TextAlign.configure({ types: ['paragraph', 'heading'] })], [])
   const initialContent = useRef(value.richText ?? plainTextDocument(value.text))
   const editorProps = useMemo(() => ({ attributes: { role: 'textbox', 'aria-label': t('text.content'), 'aria-multiline': 'true', spellcheck: 'false' } }), [t])
   const editor = useEditor({
@@ -39,7 +40,10 @@ export default function RichTextEditor({ value, onChange }: { value: TextAppeara
     },
   }, [])
   useEffect(() => {
-    if (!editor || editor.isDestroyed || !editor.view.dom.isConnected) return
+    if (!editor || editor.isDestroyed || !editor.isInitialized) return
+    let connected = false
+    try { connected = editor.view.dom.isConnected } catch { return }
+    if (!connected) return
     // Parent autosave echoes must not replace the active document/selection.
     // Formatting is edited through this editor; a new layer mounts a new instance.
     if (editor.isFocused || editor.getText({ blockSeparator: '\n' }) === value.text) return
@@ -50,11 +54,16 @@ export default function RichTextEditor({ value, onChange }: { value: TextAppeara
   }, [editor, value.richText, value.text])
   const currentSize = editor ? parseFloat(editor.getAttributes('textStyle').fontSize) || value.fontSize : value.fontSize
   useLayoutEffect(() => {
-    if (!editor || editor.isDestroyed) return
-    for (const node of [editor.view.dom, ...editor.view.dom.querySelectorAll<HTMLElement>('span')]) {
+    if (!editor || editor.isDestroyed || !editor.isInitialized) return
+    let root: HTMLElement
+    try { root = editor.view.dom } catch { return }
+    if (!root.isConnected) return
+    const nodes = [root, ...root.querySelectorAll<HTMLElement>('span')]
+    const light = nodes.map((node) => {
       const rgb = getComputedStyle(node).color.match(/[\d.]+/g)?.slice(0, 3).map(Number) ?? [0, 0, 0]
-      node.classList.toggle('editor-light-text', rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722 > 185)
-    }
+      return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722 > 185
+    })
+    nodes.forEach((node, index) => node.classList.toggle('editor-light-text', light[index]))
   }, [editor, editor?.state.doc, value.color])
   useEffect(() => { if (document.activeElement !== sizeInput.current) setSizeDraft(String(Math.round(currentSize))) }, [currentSize, editor?.state.selection.from, editor?.state.selection.to])
   if (!editor) return null
@@ -101,6 +110,10 @@ export default function RichTextEditor({ value, onChange }: { value: TextAppeara
     {emojiOpen && <EmojiPopover anchor={emojiAnchor} id={id} style={value.emojiStyle} onClose={closeEmoji} onInsert={(emoji) => { editor.chain().focus().setTextSelection(selection.current ?? editor.state.selection).insertContent(emoji).run(); setEmojiOpen(false) }} />}
     <p className="rich-editor__hint">{t('rich.hint')}</p>
     <div className="rich-editor__secondary"><button type="button" className="text-button" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>{t('rich.clear')}</button><button type="button" className="text-button" aria-expanded={markdownOpen} onClick={() => setMarkdownOpen((open) => !open)}>{t('rich.markdown')}</button></div>
-    {markdownOpen && <div className="rich-editor__markdown"><label className="field"><span className="field__label">{t('rich.markdownLabel')}</span><textarea value={markdown} onChange={(event) => setMarkdown(event.currentTarget.value)} rows={5} /></label><p className="section-copy">{t('rich.markdownHint')}</p><button type="button" className="secondary-button" disabled={!markdown.trim()} onClick={() => { editor.commands.setContent(markdown, { contentType: 'markdown' }); setMarkdownOpen(false); editor.commands.focus() }}>{t('rich.applyMarkdown')}</button></div>}
+    {markdownOpen && <div className="rich-editor__markdown"><label className="field"><span className="field__label">{t('rich.markdownLabel')}</span><textarea value={markdown} onChange={(event) => setMarkdown(event.currentTarget.value)} rows={5} /></label><p className="section-copy">{t('rich.markdownHint')}</p>{parseError && <p role="alert">{t('editor.failed')}</p>}<button type="button" className="secondary-button" disabled={!markdown.trim() || parsing} onClick={async () => {
+      setParsing(true); setParseError(false)
+      try { await installPlugin('markdown'); const { parseMarkdown } = await loadFeature('markdown', () => import('../lib/markdownParser')); const content = parseMarkdown(markdown, editor.extensionManager.extensions); if (!editor.isDestroyed) { editor.commands.setContent(content); setMarkdownOpen(false); editor.commands.focus() } }
+      catch { setParseError(true) } finally { setParsing(false) }
+    }}>{t(parsing ? 'editor.loading' : 'rich.applyMarkdown')}</button></div>}
   </div>
 }

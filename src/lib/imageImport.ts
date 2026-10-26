@@ -1,3 +1,4 @@
+import { loadFeature } from './featurePlugins'
 /** Keep MIME types and extensions: some operating systems give HEIF files an empty MIME type. */
 export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/avif,image/svg+xml,image/heic,image/heif,image/heic-sequence,image/heif-sequence,.heic,.heif,.hif,.heics,.heifs'
 
@@ -30,7 +31,7 @@ export async function isImportableImage(file: File): Promise<boolean> {
 export async function prepareImageFile(file: File): Promise<Blob> {
   if (!await isHeifFile(file)) return file
   // The codec and its worker are bundled with the app, loaded only for a HEIF import.
-  const { heicTo } = await import('heic-to/csp')
+  const { heicTo } = await loadFeature('heic', () => import('heic-to/csp'))
   // Lossless PNG avoids another lossy JPEG encoding before the user's final export.
   return heicTo({ blob: file, type: 'image/png' })
 }

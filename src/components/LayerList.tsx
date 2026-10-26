@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, CopyPlus, FoldVertical, GripVertical, MoreHorizontal, Plus, Trash2, Type } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, CheckSquare, Copy, ClipboardPaste, CopyPlus, FoldVertical, GripVertical, MoreHorizontal, Plus, Trash2, Type } from 'lucide-react'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -61,7 +61,16 @@ export function LayerList(props: Props) {
     setAnnouncement(t('layer.moved', { from: from + 1, to: to + 1 }))
   }
   return <div className="layer-list" data-over-id={overId ?? undefined}>
-    <button type="button" className="text-button" aria-pressed={multi} onClick={() => { setMulti(!multi); setChecked([]) }}>{t('layers.multi')}</button>
+    <div className="layer-toolbar" role="group" aria-label={t('layers.multi')}>
+      <button type="button" aria-label={t('layers.multi')} title={t('layers.multi')} aria-pressed={multi} onClick={() => { setMulti(!multi); setChecked([]) }}><CheckSquare size={16} />{t('layers.selectShort')}</button>
+      <button type="button" aria-label={t('layer.insertAfter')} title={t('layer.insertAfter')} onClick={() => {
+        const index = props.blocks.findIndex((block) => block.id === props.selectedId || block.type === 'photo-row' && block.photos.some((photo) => photo.id === props.selectedId))
+        props.onInsert(index < 0 ? props.blocks.length : index + 1)
+      }}><Plus size={16} />{t('layers.insertShort')}</button>
+      <span className="layer-toolbar__divider" aria-hidden="true" />
+      <button type="button" aria-label={t('style.copy')} title={t('style.copy')} disabled={!selectedAsset} onClick={() => { if (selectedAsset) { setCopied(copyLayerStyle(selectedAsset)); setAnnouncement(t('style.copied')) } }}><Copy size={16} />{t('layers.copyShort')}</button>
+      <button type="button" aria-label={t('style.paste')} title={t('style.paste')} disabled={!copied || !selectedAsset || copied.kind !== selectedAsset.type} onClick={paste}><ClipboardPaste size={16} />{t('layers.pasteShort')}</button>
+    </div>
     {multi && <div className="layer-multi"><fieldset>{props.blocks.filter((block) => block.type === 'photo').map((block) => <label key={block.id}><input type="checkbox" checked={checked.includes(block.id)} onChange={(event) => { const checked = event.currentTarget.checked; setChecked((current) => checked ? [...current, block.id] : current.filter((id) => id !== block.id)) }} />{block.name}</label>)}</fieldset><button className="secondary-button" disabled={checked.length < 2 || checked.length > 4} onClick={() => {
       const photos = props.blocks.filter((block): block is PhotoBlock => block.type === 'photo' && checked.includes(block.id))
       if (photos.length < 2 || photos.length > 4) return
@@ -69,11 +78,6 @@ export function LayerList(props: Props) {
       props.onChange(props.blocks.flatMap((block, i): ComposerBlock[] => i === index ? [{ id, type: 'photo-row', photos, heightRatio: 40, gap: 0 }] : checked.includes(block.id) ? [] : [block]))
       props.onSelect(id); setChecked([]); setMulti(false)
     }}>{t('layers.combine')}</button></div>}
-    <div className="layer-style-actions"><button className="text-button" disabled={!selectedAsset} onClick={() => { if (selectedAsset) { setCopied(copyLayerStyle(selectedAsset)); setAnnouncement(t('style.copied')) } }}>{t('style.copy')}</button><button className="text-button" disabled={!copied || !selectedAsset || copied.kind !== selectedAsset.type} onClick={paste}>{t('style.paste')}</button></div>
-    <button type="button" className="secondary-button layer-insert" onClick={() => {
-      const index = props.blocks.findIndex((block) => block.id === props.selectedId || block.type === 'photo-row' && block.photos.some((photo) => photo.id === props.selectedId))
-      props.onInsert(index < 0 ? props.blocks.length : index + 1)
-    }}><Plus size={16} />{t('layer.insertAfter')}</button>
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => setDragging(true)} onDragOver={({ over }) => setOverId(over ? String(over.id) : null)} onDragCancel={() => { setDragging(false); setOverId(null) }} onDragEnd={(event) => { onDragEnd(event); setOverId(null) }}
       accessibility={{ screenReaderInstructions: { draggable: t('layer.dragHint') }, announcements: { onDragStart: () => t('layer.dragHint'), onDragOver: () => undefined, onDragEnd: () => undefined, onDragCancel: () => t('common.cancel') } }}>
       <SortableContext items={props.blocks.map((block) => block.id)} strategy={verticalListSortingStrategy}>

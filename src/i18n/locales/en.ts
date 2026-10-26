@@ -1,8 +1,10 @@
+import { pluginsEN } from './plugins'
 import type { MessageKey } from '../types'
 import { advancedEN } from './advanced'
 
 export const en = {
   ...advancedEN,
+  ...pluginsEN,
   'layer.insertAfter': 'Insert text after the selected layer',
   'layer.insertBefore': 'Insert before this layer',
   'layer.duplicate': 'Duplicate layer',
