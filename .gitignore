@@ -47,6 +47,7 @@ Thumbs.db
 
 # Temporary downloads created during manual QA
 test-results/
+test-results-offline/
 playwright-report/
 
 # Deployment bundles and server-local configuration

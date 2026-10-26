@@ -1,161 +1,102 @@
 import type { ImportedAsset, Project, SavedComposition, StitchDraft } from '../types'
 import { recoverEditedAssets, recoverImportedAssets } from './assetLibrary'
 import { normalizeResource } from './resourceCatalog'
+import { blobReferences, commitGraphs, hydrateGraph, readLibraryRecords } from './storageGraph'
 
-const DB_NAME = 'liubai-collage'
-const DB_VERSION = 3
 export const LEGACY_PROJECT_ID = 'legacy'
-const PROJECTS = 'projects'
-const STORE = 'drafts'
-const ASSETS = 'assets'
-const LIBRARY_KEY = 'imported-stitch'
-const RESOURCE_EDIT_VERSION_KEY = 'resource-edit-version'
-const RESOURCE_EDIT_VERSION = 1
-const STITCH_KEY = 'current-stitch'
-const COMPOSITION_PREFIX = 'composition:'
-
-function openDatabase(): Promise<IDBDatabase> {
+export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
+    const request = indexedDB.open('liubai-collage', 4)
     request.onupgradeneeded = () => {
       const db = request.result
-      if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE)
-      if (!db.objectStoreNames.contains(ASSETS)) db.createObjectStore(ASSETS)
-      if (!db.objectStoreNames.contains(PROJECTS)) {
-        db.createObjectStore(PROJECTS)
-        request.transaction!.objectStore(PROJECTS).put({ id: LEGACY_PROJECT_ID, name: '', createdAt: Date.now(), updatedAt: Date.now() }, `project:${LEGACY_PROJECT_ID}`)
+      for (const name of ['drafts', 'assets', 'records', 'blobs']) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name)
+      if (!db.objectStoreNames.contains('projects')) {
+        db.createObjectStore('projects')
+        request.transaction!.objectStore('projects').put({ id: LEGACY_PROJECT_ID, name: '', createdAt: Date.now(), updatedAt: Date.now() }, 'project:legacy')
       }
     }
-    request.onsuccess = () => {
-      request.result.onversionchange = () => request.result.close()
-      resolve(request.result)
-    }
+    request.onsuccess = () => { request.result.onversionchange = () => request.result.close(); resolve(request.result) }
     request.onblocked = () => reject(new Error('database-blocked'))
-    request.onerror = () => reject(request.error ?? new Error('无法打开浏览器本地草稿库'))
+    request.onerror = () => reject(request.error ?? new Error('database-open-failed'))
   })
 }
-
-const draftKey = (projectId: string) => projectId === LEGACY_PROJECT_ID ? STITCH_KEY : `draft:${projectId}`
-const assetKey = (projectId: string) => projectId === LEGACY_PROJECT_ID ? LIBRARY_KEY : `imported:${projectId}`
+async function database<T>(action: (db: IDBDatabase) => Promise<T>): Promise<T> {
+  const db = await openDatabase()
+  try { return await action(db) } finally { db.close() }
+}
+const draftKey = (id: string) => id === LEGACY_PROJECT_ID ? 'current-stitch' : `draft:${id}`
+const assetKey = (id: string) => id === LEGACY_PROJECT_ID ? 'imported-stitch' : `imported:${id}`
+function get(db: IDBDatabase, store: string, key: IDBValidKey | IDBKeyRange, all = false): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store), request = all ? tx.objectStore(store).getAll(key) : tx.objectStore(store).get(key)
+    tx.oncomplete = () => resolve(request.result); tx.onabort = () => reject(tx.error)
+  })
+}
 export async function loadStitchWorkspace(projectId = LEGACY_PROJECT_ID): Promise<{ draft: StitchDraft | null; assets: ImportedAsset[] }> {
-  const db = await openDatabase()
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE, ASSETS], 'readonly')
-    const draftRequest = transaction.objectStore(STORE).get(draftKey(projectId))
-    const assetsRequest = transaction.objectStore(ASSETS).get(assetKey(projectId))
-    const resourceVersionRequest = transaction.objectStore(ASSETS).get(RESOURCE_EDIT_VERSION_KEY)
-    transaction.oncomplete = () => {
-      db.close()
-      const draft = (draftRequest.result as StitchDraft | undefined) ?? null
-      const assets = assetsRequest.result as ImportedAsset[] | undefined
-      // An explicitly empty library must never be repopulated from remaining layers.
-      const imported = assets ?? recoverImportedAssets(draft?.blocks ?? [])
-      resolve({
-        draft,
-        assets: (resourceVersionRequest.result ?? 0) < RESOURCE_EDIT_VERSION
-          ? recoverEditedAssets(imported, draft?.blocks ?? []).map(normalizeResource)
-          : imported.map(normalizeResource),
-      })
-    }
-    transaction.onabort = () => { db.close(); reject(transaction.error ?? new Error('读取本地工作区失败')) }
+  return database(async (db) => {
+    const [rawDraft, index, version] = await Promise.all([get(db, 'drafts', draftKey(projectId)), get(db, 'assets', assetKey(projectId)), get(db, 'assets', 'resource-edit-version')])
+    const draft = await hydrateGraph<StitchDraft | null>(db, rawDraft ?? null)
+    if ((draft?.schemaVersion ?? 1) > 2) throw new Error('unsupported-draft-version')
+    const raw = index === undefined ? null : await readLibraryRecords(db, assetKey(projectId), index)
+    const imported = raw === null ? recoverImportedAssets(draft?.blocks ?? []) : await hydrateGraph<ImportedAsset[]>(db, raw)
+    return { draft, assets: ((Number(version) || 0) < 1 ? recoverEditedAssets(imported, draft?.blocks ?? []) : imported).map(normalizeResource) }
   })
 }
-
+const write = (store: string, key: string, value: unknown) => ({ store, key, value })
 export async function saveStitchWorkspace(draft: StitchDraft, assets: ImportedAsset[], projectId = LEGACY_PROJECT_ID): Promise<void> {
-  const db = await openDatabase()
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE, ASSETS], 'readwrite')
-    transaction.objectStore(STORE).put(draft, draftKey(projectId))
-    transaction.objectStore(ASSETS).put(assets, assetKey(projectId))
-    transaction.objectStore(ASSETS).put(RESOURCE_EDIT_VERSION, RESOURCE_EDIT_VERSION_KEY)
-    transaction.oncomplete = () => {
-      db.close()
-      resolve()
-    }
-    transaction.onabort = () => { db.close(); reject(transaction.error ?? new Error('保存本地工作区失败')) }
-  })
+  await database((db) => commitGraphs(db, [write('drafts', draftKey(projectId), draft), write('assets', 'resource-edit-version', 1)], { key: assetKey(projectId), items: assets }))
 }
-
-export async function clearStitchDraft(): Promise<void> {
-  const db = await openDatabase()
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE, 'readwrite')
-    transaction.objectStore(STORE).delete(STITCH_KEY)
-    transaction.oncomplete = () => {
-      db.close()
-      resolve()
-    }
-    transaction.onabort = () => { db.close(); reject(transaction.error ?? new Error('清除本地草稿失败')) }
-  })
-}
-
 export async function saveStitchDraft(draft: StitchDraft, projectId = LEGACY_PROJECT_ID): Promise<void> {
-  await writeEntry(STORE, draftKey(projectId), draft)
+  await database((db) => commitGraphs(db, [write('drafts', draftKey(projectId), draft)]))
 }
-
+export async function clearStitchDraft(): Promise<void> { await database((db) => commitGraphs(db, [write('drafts', 'current-stitch', undefined)])) }
 export async function saveImportedAssets(assets: ImportedAsset[], projectId = LEGACY_PROJECT_ID): Promise<void> {
-  const db = await openDatabase()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(ASSETS, 'readwrite')
-    tx.objectStore(ASSETS).put(assets, assetKey(projectId))
-    tx.objectStore(ASSETS).put(RESOURCE_EDIT_VERSION, RESOURCE_EDIT_VERSION_KEY)
-    tx.oncomplete = () => { db.close(); resolve() }
-    tx.onabort = () => { db.close(); reject(tx.error ?? new Error('保存资源失败')) }
-  })
+  await database((db) => commitGraphs(db, [write('assets', 'resource-edit-version', 1)], { key: assetKey(projectId), items: assets }))
 }
-
 export async function loadSavedCompositions(projectId = LEGACY_PROJECT_ID): Promise<SavedComposition[]> {
-  const db = await openDatabase()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(ASSETS, 'readonly')
-    const request = tx.objectStore(ASSETS).getAll(IDBKeyRange.bound(COMPOSITION_PREFIX, `${COMPOSITION_PREFIX}\uffff`))
-    tx.oncomplete = () => { db.close(); resolve((request.result as SavedComposition[]).filter((item) => (item.taskId ?? LEGACY_PROJECT_ID) === projectId).sort((a, b) => (b.updatedAt ?? b.createdAt) - (a.updatedAt ?? a.createdAt))) }
-    tx.onabort = () => { db.close(); reject(tx.error ?? new Error('读取长图资源失败')) }
+  return database(async (db) => {
+    const raw = await get(db, 'assets', IDBKeyRange.bound('composition:', 'composition:\uffff'), true)
+    const compositions = await hydrateGraph<SavedComposition[]>(db, (raw as SavedComposition[]).filter((item) => (item.taskId ?? LEGACY_PROJECT_ID) === projectId))
+    return compositions.filter((item) => (item.taskId ?? LEGACY_PROJECT_ID) === projectId).sort((a, b) => (b.updatedAt ?? b.createdAt) - (a.updatedAt ?? a.createdAt))
   })
 }
-
 export async function loadProjects(): Promise<{ projects: Project[]; activeId: string }> {
-  const db = await openDatabase()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(PROJECTS)
-    const records = tx.objectStore(PROJECTS).getAll(IDBKeyRange.bound('project:', 'project:\uffff'))
-    const active = tx.objectStore(PROJECTS).get('active')
-    tx.oncomplete = () => { db.close(); resolve({ projects: records.result, activeId: active.result ?? LEGACY_PROJECT_ID }) }
-    tx.onabort = () => { db.close(); reject(tx.error) }
+  return database(async (db) => {
+    const [projects, activeId] = await Promise.all([get(db, 'projects', IDBKeyRange.bound('project:', 'project:\uffff'), true), get(db, 'projects', 'active')])
+    return { projects: projects as Project[], activeId: (activeId as string) ?? LEGACY_PROJECT_ID }
   })
 }
-export async function saveProject(project: Project): Promise<void> { await writeEntry(PROJECTS, `project:${project.id}`, project) }
-export async function saveActiveProject(projectId: string): Promise<void> { await writeEntry(PROJECTS, 'active', projectId) }
-
-/** One transaction: bulk removal never commits just half its resource selection. */
-export async function saveResourceSelection(assets: ImportedAsset[], removedCompositionIds: string[], projectId = LEGACY_PROJECT_ID, restoredCompositions: SavedComposition[] = []): Promise<void> {
-  const db = await openDatabase()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(ASSETS, 'readwrite')
-    tx.objectStore(ASSETS).put(assets, assetKey(projectId))
-    tx.objectStore(ASSETS).put(RESOURCE_EDIT_VERSION, RESOURCE_EDIT_VERSION_KEY)
-    for (const id of removedCompositionIds) tx.objectStore(ASSETS).delete(COMPOSITION_PREFIX + id)
-    for (const composition of restoredCompositions) tx.objectStore(ASSETS).put(composition, COMPOSITION_PREFIX + composition.id)
-    tx.oncomplete = () => { db.close(); resolve() }
-    tx.onabort = () => { db.close(); reject(tx.error) }
-  })
+export async function saveProject(project: Project): Promise<void> { await database((db) => commitGraphs(db, [write('projects', `project:${project.id}`, project)])) }
+export async function saveActiveProject(id: string): Promise<void> { await database((db) => commitGraphs(db, [write('projects', 'active', id)])) }
+export async function saveResourceSelection(assets: ImportedAsset[], removed: string[], projectId = LEGACY_PROJECT_ID, restored: SavedComposition[] = []): Promise<void> {
+  await database((db) => commitGraphs(db, [write('assets', 'resource-edit-version', 1), ...removed.map((id) => write('assets', `composition:${id}`, undefined)), ...restored.map((item) => write('assets', `composition:${item.id}`, item))], { key: assetKey(projectId), items: assets }))
 }
-
-export async function saveComposition(composition: SavedComposition): Promise<void> {
-  await writeEntry(ASSETS, COMPOSITION_PREFIX + composition.id, composition)
+export async function saveComposition(composition: SavedComposition): Promise<void> { await database((db) => commitGraphs(db, [write('assets', `composition:${composition.id}`, composition)])) }
+export async function deleteComposition(id: string): Promise<void> { await database((db) => commitGraphs(db, [write('assets', `composition:${id}`, undefined)])) }
+export async function loadToolState<T>(tool: string, projectId: string): Promise<T | null> {
+  return database(async (db) => hydrateGraph<T | null>(db, await get(db, 'drafts', `tool:${tool}:${projectId}`) ?? null))
 }
-
-export async function deleteComposition(id: string): Promise<void> {
-  await writeEntry(ASSETS, COMPOSITION_PREFIX + id, undefined)
+export async function saveToolState(tool: string, projectId: string, value: unknown): Promise<void> {
+  await database((db) => commitGraphs(db, [write('drafts', `tool:${tool}:${projectId}`, value)]))
 }
-
-async function writeEntry(store: string, key: string, value: unknown): Promise<void> {
-  const db = await openDatabase()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(store, 'readwrite')
-    if (value === undefined) tx.objectStore(store).delete(key)
-    else tx.objectStore(store).put(value, key)
-    tx.oncomplete = () => { db.close(); resolve() }
-    tx.onabort = () => { db.close(); reject(tx.error ?? new Error('保存本地资源失败')) }
-  })
+/** Restore into a fresh task in one transaction, preserving the original workspace. */
+export async function restoreProject(project: Project, draft: StitchDraft | null, assets: ImportedAsset[], saved: SavedComposition[], grid?: unknown): Promise<void> {
+  await database((db) => commitGraphs(db, [write('projects', `project:${project.id}`, project), write('drafts', draftKey(project.id), draft), write('assets', 'resource-edit-version', 1), ...saved.map((item) => write('assets', `composition:${item.id}`, item)), ...(grid ? [write('drafts', `tool:grid:${project.id}`, grid)] : [])], { key: assetKey(project.id), items: assets }))
+}
+/** Scan and collect in the same exclusive transaction, so an autosave cannot race GC. */
+export async function compactStorage(): Promise<number> {
+  return database((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(['drafts', 'assets', 'records', 'blobs'], 'readwrite'), refs = new Set<string>()
+    let pending = 3, removed = 0
+    for (const name of ['drafts', 'assets', 'records']) {
+      const request = tx.objectStore(name).getAll()
+      request.onsuccess = () => {
+        blobReferences(request.result, refs)
+        if (--pending) return
+        const cursor = tx.objectStore('blobs').openCursor()
+        cursor.onsuccess = () => { const entry = cursor.result; if (!entry) return; if (!refs.has(String(entry.key))) { entry.delete(); removed++ } entry.continue() }
+      }
+    }
+    tx.oncomplete = () => resolve(removed); tx.onabort = () => reject(tx.error)
+  }))
 }

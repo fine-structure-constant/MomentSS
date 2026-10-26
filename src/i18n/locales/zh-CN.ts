@@ -1,4 +1,6 @@
+import { advancedCN } from './advanced'
 export const zhCN = {
+  ...advancedCN,
   'layer.insertAfter': '在所选图层后插入文字',
   'layer.insertBefore': '在此图层前插入',
   'layer.duplicate': '复制图层',
@@ -319,8 +321,8 @@ export const zhCN = {
   'stitch.insertTextHere': '在第 {{number}} 层前插入文字',
   'stitch.pairDownward': '向下并排',
   'stitch.pairDownwardAria': '把第 {{number}} 层与其下一层并排',
-  'stitch.splitRow': '拆为上下两行',
-  'stitch.photoRow': '双图横排',
+  'stitch.splitRow': '拆为独立图片',
+  'stitch.photoRow': '多图横排',
   'stitch.rowHeight': '横排高度',
   'stitch.rowGap': '双图间距',
   'stitch.sortHint': '上传多张照片后，在这里拖动排序。',

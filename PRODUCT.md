@@ -31,6 +31,13 @@ One private, browser-local workspace combines three jobs that are usually fragme
 
 ## Capabilities and Constraints
 
+- Floating Emoji panels belong to the active editor/modal and restore document selection. Optional versioned Twemoji and Fluent packs use the same inline image geometry in preview and export; native emoji remain available, with explicit device-font fallback for missing artwork.
+- Light-colored editor text gains a visual legibility aid without changing output styles.
+- Import batches expose progress, cancellation and per-file retry while keeping successful results. New photos carry small thumbnails; offscreen original images do not remain decoded in the interactive canvas.
+- IndexedDB v4 separates incremental editable records and content-addressed immutable blobs. Editable ZIP project packages include drafts, assets, saved results and grid state; restoration validates integrity and creates a fresh task. Only one tab writes at a time.
+- Rows support 2–4 photos and width ratios, alongside basic style copying and travel/title/date templates. Grid output supports resource sources, persistent crop, PNG/JPG presets, tile limits, individual download and ZIP.
+- A service worker caches application code; an explicit complete offline pack adds all bundled fonts and Emoji assets. Offline readiness and update availability are visible. Updating waits for a user refresh after saving; clearing site data removes both projects and offline caches.
+
 - Import common browser-readable image formats from the local device.
 - Decode HEIC / HEIF / HIF photos locally through Resources or the grid tool; the cover tool selects imported resources. Normalize to an editable PNG resource, keep the filename and pixel dimensions, and load the codec on demand. Multi-image containers use the first decoded still image. Preserve successfully parsed original capture dates in the resource record before conversion; normalized PNGs do not embed original EXIF, dynamic or HDR information.
 - Reorder images in a long composition with explicit up/down controls and pointer, touch or keyboard handles; group secondary actions in a per-layer menu.

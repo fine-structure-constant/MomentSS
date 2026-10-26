@@ -21,6 +21,12 @@ export function restoreDeletedLayer(current: ComposerBlock[], before: ComposerBl
   const originalRow = before.find((block): block is PhotoRowBlock => block.type === 'photo-row' && block.photos.some((photo) => photo.id === deletedId))
   const deleted = originalRow?.photos.find((photo) => photo.id === deletedId)
   if (!originalRow || !deleted || current.some((block) => block.id === deletedId || block.type === 'photo-row' && block.photos.some((photo) => photo.id === deletedId))) return current
+  const survivingRow = current.find((block): block is PhotoRowBlock => block.type === 'photo-row' && block.id === originalRow.id)
+  if (survivingRow) {
+    const photos = restoreRemoved(survivingRow.photos, originalRow.photos, [deletedId])
+    const widths = photos.map((photo) => photo.id === deletedId ? originalRow.widths?.[originalRow.photos.findIndex((p) => p.id === deletedId)] ?? 1 : survivingRow.widths?.[survivingRow.photos.findIndex((p) => p.id === photo.id)] ?? 1)
+    return current.map((block) => block.id === survivingRow.id ? { ...survivingRow, photos, widths } : block)
+  }
   const siblingId = originalRow.photos.find((photo) => photo.id !== deletedId)!.id
   const siblingIndex = current.findIndex((block) => block.id === siblingId && block.type === 'photo')
   if (siblingIndex >= 0) {

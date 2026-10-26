@@ -10,7 +10,7 @@ const TEXT_STYLE_KEY = 'liubai-text-style'
 const OVERLAY_STYLE_KEY = 'liubai-overlay-style'
 const RESOURCE_VIEW_KEY = 'liubai-resource-view'
 
-export type TextStylePreset = Pick<TextAppearance, 'color' | 'background' | 'fontFamily' | 'fontSize' | 'fontWeight' | 'italic' | 'align' | 'rotation' | 'lineHeight'>
+export type TextStylePreset = Pick<TextAppearance, 'color' | 'background' | 'fontFamily' | 'fontSize' | 'fontWeight' | 'italic' | 'align' | 'rotation' | 'lineHeight' | 'emojiStyle'>
 export type OverlayStylePreset = TextStylePreset & Pick<PhotoOverlay, 'width' | 'backgroundOpacity' | 'boxPadding' | 'borderStyle' | 'borderWidth' | 'borderColor' | 'borderRadius'>
 
 /** The resource panel unmounts when another tab is opened, so its view mode is stored here. */
@@ -41,6 +41,7 @@ function oneOf<T>(options: T[]): Validator {
 }
 
 const TEXT_FIELDS: Array<[keyof TextStylePreset, Validator]> = [
+  ['emojiStyle', oneOf(['native', 'twemoji-v17', 'fluent-v1'])],
   ['color', (value) => isText(value) && /^#[0-9a-f]{6}$/i.test(value as string)],
   ['background', (value) => isText(value) && /^#[0-9a-f]{6}$/i.test(value as string)],
   ['fontFamily', isFont],

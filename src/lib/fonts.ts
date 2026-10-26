@@ -1,4 +1,5 @@
 import type { ComposerBlock, RichTextNode, TextAppearance } from '../types'
+import { ensureEmojiArt } from './emojiArt'
 
 export const FONT_OPTIONS = [
   { label: 'text.fontRounded', value: '"MomentRounded-v1", sans-serif', family: 'MomentRounded-v1' },
@@ -19,7 +20,7 @@ export function fontFamilies(styles: TextAppearance[]): string[] {
 }
 export async function ensureTextFonts(styles: TextAppearance[]): Promise<void> {
   if (typeof document === 'undefined' || !document.fonts) return
-  await Promise.all(fontFamilies(styles).map(async (family) => {
+  await Promise.all([ensureEmojiArt(styles), ...fontFamilies(styles).map(async (family) => {
     const entry = FONT_OPTIONS.find((font) => font.family && family.includes(font.family))
     if (!entry?.family) return
     if (!loaded.has(entry.family)) {
@@ -29,7 +30,7 @@ export async function ensureTextFonts(styles: TextAppearance[]): Promise<void> {
       loaded.set(entry.family, promise)
     }
     await loaded.get(entry.family)
-  }))
+  })])
 }
 export function textStyles(blocks: ComposerBlock[]): TextAppearance[] {
   return blocks.flatMap((block) => block.type === 'text' ? [block] : block.type === 'photo' ? block.overlay ? [block.overlay] : [] : block.photos.flatMap((photo) => photo.overlay ? [photo.overlay] : []))

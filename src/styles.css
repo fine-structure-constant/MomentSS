@@ -65,6 +65,10 @@
 .rich-editor__document { max-height: 260px; overflow: auto; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; }
 .rich-editor__document .tiptap { width: 200%; min-height: 190px; padding: 20px 24px; zoom: .5; outline: none; color: var(--text-base-color); font-family: var(--text-base-family); font-size: var(--text-base-font); line-height: var(--text-base-line); white-space: pre-wrap; overflow-wrap: anywhere; }
 .rich-editor__document:focus-within { outline: 2px solid var(--pool); outline-offset: 2px; }
+.rich-editor__document .editor-light-text { text-shadow: -1px 0 #425466, 1px 0 #425466, 0 -1px #425466, 0 1px #425466; caret-color: #10243d; }
+.emoji-popover { z-index: 80; overflow: auto; overscroll-behavior: contain; border-radius: 10px; box-shadow: 0 12px 40px #10243d40; background: #fff; animation: toast-in 140ms ease-out; }
+.emoji-popover .emoji-picker { height: 100%; }
+.emoji-picker__grid img { width: 26px; height: 26px; object-fit: contain; }
 .rich-editor__document p { margin: 0; }
 .rich-editor__document .tiptap { text-align: var(--text-base-align); }
 .rich-editor__document li p, .rich-editor__document blockquote p { text-align: left; }
@@ -838,5 +842,28 @@ input[type="range"]:disabled { cursor: not-allowed; }
 }
 
 /* Keep transient feedback above, rather than over, the save controls. */
+.lazy-blob-image { display: block; width: 100%; height: 100%; overflow: hidden; }
+.lazy-blob-image img { width: 100%; height: 100%; object-fit: cover; }
+.resource-tile { content-visibility: auto; contain-intrinsic-size: auto 220px; }
+.project-storage { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.import-status { margin: 12px 20px 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; }
+.import-status:has(details) { background: #fff8ed; }
+.import-status p { margin: 4px 0; }
+.import-status ul { max-height: 120px; padding-left: 18px; overflow: auto; word-break: break-word; }
+.template-picker { margin: 16px 24px; }
+.layer-multi { padding: 10px; border: 1px solid var(--line); }
+.layer-multi fieldset { max-height: 180px; overflow: auto; border: 0; padding: 0; }
+.layer-multi label { display: flex; gap: 8px; min-height: 44px; align-items: center; font-size: 12px; }
+.layer-style-actions { display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 8px; }
+.offline-control { position: relative; flex-shrink: 0; }
+.offline-control > button { min-height: 44px; }
+.offline-panel { position: absolute; z-index: 30; right: 0; top: 100%; width: min(340px, calc(100vw - 24px)); padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: var(--shadow); font-size: 13px; }
+.offline-panel p { line-height: 1.6; }
+.grid-single-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.grid-actions { display: flex; flex-direction: column; gap: 14px; }
+.grid-actions .field { margin: 0; }
+.grid-actions .count-picker { flex-shrink: 0; }
+.project-manager > .text-button { padding-inline: 8px; }
+@media (max-width: 900px) { .project-manager { flex-wrap: wrap; } .project-manager > label { flex-basis: 140px; } .offline-control { margin-left: auto; } .layer-multi input { min-width: 20px; min-height: 20px; } .template-picker { margin-inline: 16px; } }
 @media (min-width: 901px) { .status-toast { right: 424px; bottom: 24px; max-width: min(450px, calc(100vw - 540px)); } }
 @media (max-width: 900px) { .status-toast { bottom: 190px; } }

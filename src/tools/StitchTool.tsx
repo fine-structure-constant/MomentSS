@@ -14,7 +14,7 @@ import {
   Type,
 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { filesToPhotoBlocks } from '../lib/canvas'
+import { filesToPhotoBlocks, type ImportProgress } from '../lib/canvas'
 import { createComposition } from '../lib/resourceExport'
 import { createLayerFromAsset, findTextAsset, saveEditedAsset } from '../lib/assetLibrary'
 import { buildStitchLayout, createTextMeasurer } from '../lib/stitchLayout'
@@ -84,6 +84,9 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const workspaceSaveState = saveState === 'error' || library.saveState === 'error' ? 'error' : saveState === 'saving' || library.saveState === 'saving' ? 'saving' : 'saved'
   const [busy, setBusy] = useState(false)
+  const importController = useRef<AbortController | null>(null)
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(null)
+  useEffect(() => () => importController.current?.abort(), [])
   const [photoEditorId, setPhotoEditorId] = useState<string | null>(null)
   const [panelTab, setPanelTab] = useState<'import' | 'layers' | 'adjust'>('import')
   const [focusedId, setFocusedId] = useState<string | null>(null)
@@ -161,14 +164,14 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   useLayoutEffect(() => {
     if (!hydrated) return
     snapshot.current = { blocks, settings, sourceCompositionId }
-    library.stageDraft({ blocks, settings, sourceCompositionId, updatedAt: Date.now(), schemaVersion: 1 }, library.projectId)
+    library.stageDraft({ blocks, settings, sourceCompositionId, updatedAt: Date.now(), schemaVersion: 2 }, library.projectId)
   }, [blocks, settings, sourceCompositionId, hydrated, library.stageDraft, library.projectId])
 
   useEffect(() => {
     if (!hydrated) return
     setSaveState('saving')
     const timer = window.setTimeout(() => {
-      void library.persistDraft({ blocks, settings, sourceCompositionId, updatedAt: Date.now(), schemaVersion: 1 }, library.projectId)
+      void library.persistDraft({ blocks, settings, sourceCompositionId, updatedAt: Date.now(), schemaVersion: 2 }, library.projectId)
         .then(() => setSaveState('saved'))
         .catch(() => setSaveState('error'))
     }, 650)
@@ -178,7 +181,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   useEffect(() => {
     return () => {
       const latest = snapshot.current
-      if (latest) void library.persistDraft({ ...latest, updatedAt: Date.now(), schemaVersion: 1 }, library.projectId).catch(() => {})
+      if (latest) void library.persistDraft({ ...latest, updatedAt: Date.now(), schemaVersion: 2 }, library.projectId).catch(() => {})
     }
   }, [])
 
@@ -189,9 +192,11 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
   }, [focusedId])
 
   const handleFiles = async (files: File[]) => {
+    if (importController.current) return
+    const controller = new AbortController(); importController.current = controller
     try {
-      const photos = (await filesToPhotoBlocks(files)).map((photo) => ({ ...photo, taskId: library.projectId }))
-      if (!photos.length) throw new Error('no readable image')
+      const photos = (await filesToPhotoBlocks(files, { signal: controller.signal, onProgress: setImportProgress })).map((photo) => ({ ...photo, taskId: library.projectId }))
+      if (!photos.length) { if (controller.signal.aborted) onToast({ text: t('import.cancelled'), tone: 'info' }); else onToast({ text: t('stitch.imageReadError'), tone: 'warning' }); return }
       const layers = photos.map(createLayerFromAsset)
       setAssets((current) => [...current, ...photos])
       setBlocks((current) => [...current, ...layers])
@@ -204,12 +209,13 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
       }
     } catch {
       onToast({ text: t('stitch.imageReadError'), tone: 'warning' })
-    }
+    } finally { importController.current = null }
   }
 
   /** Inserts a text card at an explicit position; an identical card reuses its resource. */
-  const insertTextAt = (index: number) => {
-    const candidate = { ...createTextBlock(t('text.defaultCard'), textPreset), importedAt: Date.now(), updatedAt: Date.now(), taskId: library.projectId }
+  const insertTextAt = (index: number, template?: 'title' | 'caption' | 'date') => {
+    const text = template === 'date' ? new Date().toLocaleDateString() : template ? t(`template.${template}`) : t('text.defaultCard')
+    const candidate = { ...createTextBlock(text, { ...textPreset, ...(template ? { fontSize: template === 'title' ? 76 : template === 'caption' ? 32 : 40, background: template === 'title' ? '#e3f4f5' : '#ffffff', color: '#143b5c' } : {}) }), importedAt: Date.now(), updatedAt: Date.now(), taskId: library.projectId }
     const reusable = findTextAsset(assets, candidate)
     const layer = createLayerFromAsset(reusable ?? candidate)
     if (!reusable) setAssets((current) => [...current, candidate])
@@ -387,7 +393,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
     }
     try {
       await library.flushAssets()
-      await library.persistDraft({ blocks: [], settings: DEFAULT_SETTINGS, updatedAt: Date.now(), sourceCompositionId: null, schemaVersion: 1 }, library.projectId)
+      await library.persistDraft({ blocks: [], settings: DEFAULT_SETTINGS, updatedAt: Date.now(), sourceCompositionId: null, schemaVersion: 2 }, library.projectId)
     } catch {
       onToast({ text: t('stitch.saveError'), tone: 'warning' })
       return
@@ -438,9 +444,11 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
           </div>
 
           <div className="studio-sidebar__content">
+            {importProgress && (!!importController.current || importProgress.failures.length > 0 || importProgress.cancelled) && <div className="import-status" role="status"><p>{t('import.progress', { current: importProgress.current, total: importProgress.total })}</p>{importController.current && <button className="text-button" onClick={() => importController.current?.abort()}>{t('import.cancel')}</button>}{importProgress.cancelled && <p>{t('import.cancelled')}</p>}{importProgress.failures.length > 0 && <details open><summary>{t('import.failed')} ({importProgress.failures.length})</summary><ul>{importProgress.failures.map(({ file, reason }, index) => <li key={index}>{file.name} — {t(reason === 'unsupported' ? 'import.unsupported' : 'import.reason')}</li>)}</ul><button className="secondary-button" disabled={!!importController.current} onClick={() => void handleFiles(importProgress.failures.map(({ file }) => file))}>{t('import.retry')}</button></details>}</div>}
             {panelTab === 'import' && <ResourcePanel library={library} selectedSourceId={selected?.sourceId ?? selected?.id ?? null}
               onFiles={handleFiles} onText={() => insertTextAt(blocks.length)} onAdd={addAssetToCanvas} onOpen={openComposition}
               onCover={onCover} onRenameAsset={renameAsset} onToast={onToast} confirm={confirm} />}
+            {panelTab === 'import' && <label className="field template-picker"><span className="field__label">{t('template.label')}</span><select value="" onChange={(event) => { const value = event.currentTarget.value as 'title' | 'caption' | 'date'; if (value) insertTextAt(blocks.length, value) }}><option value="">{t('template.label')}</option>{(['title', 'caption', 'date'] as const).map((name) => <option key={name} value={name}>{t(`template.${name}`)}</option>)}</select></label>}
 
             {panelTab === 'layers' && (
               <section className="studio-pane studio-pane--layers" role="tabpanel" aria-label={t('stitch.sequenceAria')}>
@@ -449,7 +457,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
                   <button type="button" className="icon-button" onClick={() => void resetDraft()} aria-label={t('stitch.clearDraft')}><RotateCcw size={18} /></button>
                 </div>
 
-                <LayerList blocks={blocks} selectedId={selectedId} onSelect={setSelectedId} onInspect={(id) => { setSelectedId(id); setPanelTab('adjust') }} onChange={setBlocks} onInsert={insertTextAt} onRemove={(id) => void removeCanvasItem(id)} onPair={pairWithNextLayer} />
+                <LayerList blocks={blocks} selectedId={selectedId} onSelect={setSelectedId} onInspect={(id) => { setSelectedId(id); setPanelTab('adjust') }} onChange={setBlocks} onStyleApply={(asset) => setAssets((current) => saveEditedAsset(current, asset))} onInsert={insertTextAt} onRemove={(id) => void removeCanvasItem(id)} onPair={pairWithNextLayer} />
                 {selectedRow && <div className="layer-bottom-actions"><button type="button" className="secondary-button" onClick={splitSelectedRow}><Columns2 size={16} />{t('stitch.splitRow')}</button></div>}
                 <FieldGroup title={t('stitch.canvasSettings')}>
                   <RangeField label={t('stitch.outputWidth')} value={settings.width} min={720} max={2160} step={120} suffix="px" onChange={(width) => setSettings({ ...settings, width })} />
@@ -474,6 +482,7 @@ export function StitchTool({ onToast, library, onCover }: StitchToolProps) {
                 {selectedRow && <FieldGroup title={t('stitch.photoRow')} actions={<button type="button" className="danger-text" onClick={() => void removeCanvasItem(selectedRow.id)}>{t('stitch.removeFromCanvas')}</button>}>
                   <RangeField label={t('stitch.rowHeight')} value={selectedRow.heightRatio ?? 62} min={35} max={100} suffix="%" onChange={(heightRatio) => updateRow(selectedRow.id, { heightRatio })} />
                   <RangeField label={t('stitch.rowGap')} value={selectedRow.gap ?? 0} min={0} max={80} suffix="px" onChange={(gap) => updateRow(selectedRow.id, { gap })} />
+                  <label className="field"><span className="field__label">{t('layers.ratio')}</span><input key={selectedRow.id + ':' + selectedRow.photos.length} defaultValue={(selectedRow.widths ?? selectedRow.photos.map(() => 1)).join(', ')} onBlur={(event) => { const values = event.currentTarget.value.split(/[,，]/).map(Number); if (values.length === selectedRow.photos.length && values.every((n) => Number.isFinite(n) && n >= 1 && n <= 100)) updateRow(selectedRow.id, { widths: values }); else event.currentTarget.value = (selectedRow.widths ?? selectedRow.photos.map(() => 1)).join(', ') }} /></label>
                   <div className="inline-inspector-actions">
                     <button type="button" className="text-button" onClick={() => setBlocks((current) => swapRowPhotos(current, selectedRow.id))}>{t('stitch.swapRowPhotos')}</button>
                     <button type="button" className="text-button" onClick={splitSelectedRow}>{t('stitch.splitRow')}</button>

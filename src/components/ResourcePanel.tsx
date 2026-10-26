@@ -5,6 +5,7 @@ import type { ResourceLibrary } from '../hooks/useResourceLibrary'
 import type { ToastMessage } from './StatusToast'
 import type { ConfirmOptions } from './ConfirmDialog'
 import { useObjectUrl } from '../hooks/useObjectUrl'
+import { LazyBlobImage } from './LazyBlobImage'
 import { useI18n, type MessageKey } from '../i18n'
 import { UploadDropzone } from './UploadDropzone'
 import { StitchPreview } from './StitchPreview'
@@ -257,8 +258,8 @@ export function ResourcePanel({
   }
 
   const thumbnail = (resource: Resource) => {
-    if ('blocks' in resource) return <BlobImage blob={resource.thumbnail} />
-    if (resource.type === 'photo') return <BlobImage blob={resource.blob} />
+    if ('blocks' in resource) return <LazyBlobImage blob={resource.thumbnail} />
+    if (resource.type === 'photo') return <LazyBlobImage blob={resource.thumbnail ?? resource.blob} />
     // The text itself sits under the thumbnail, so the tile only needs the card glyph.
     return <Type size={24} />
   }

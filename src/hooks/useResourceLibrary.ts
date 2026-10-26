@@ -21,6 +21,8 @@ export function useResourceLibrary(onToast: (message: ToastMessage) => void) {
   const projectRef = useRef(projectId)
   const draftRef = useRef<StitchDraft | null>(null)
   const queue = useRef<Promise<unknown>>(Promise.resolve())
+  const toolSaves = useRef(new Set<() => Promise<unknown>>())
+  const registerToolSave = useCallback((save: () => Promise<unknown>) => { toolSaves.current.add(save); return () => { toolSaves.current.delete(save) } }, [])
   const enqueue = useCallback(<T,>(operation: () => Promise<T>): Promise<T> => {
     const next = queue.current.catch(() => {}).then(operation)
     queue.current = next
@@ -71,6 +73,7 @@ export function useResourceLibrary(onToast: (message: ToastMessage) => void) {
   const persistDraft = useCallback((draft: StitchDraft, id: string) => enqueue(() => saveStitchDraft(draft, id)), [enqueue])
   const flushWorkspace = useCallback(async () => {
     const id = projectRef.current, draft = draftRef.current, current = latest.current
+    await Promise.all([...toolSaves.current].map((save) => save()))
     await enqueue(() => draft ? saveStitchWorkspace(draft, current, id) : saveImportedAssets(current, id))
   }, [enqueue])
   const switchProject = useCallback(async (id: string) => {
@@ -143,7 +146,8 @@ export function useResourceLibrary(onToast: (message: ToastMessage) => void) {
     const imported = (await loadStitchWorkspace(sourceId)).assets.map((asset, index) => ({ ...asset, id: crypto.randomUUID(), sourceId: undefined, taskId: targetId, importedAt: Date.now(), importOrder: index }))
     if (projectRef.current === targetId) setAssets((current) => [...current, ...imported])
   }, [projectId, setAssets])
+  const refreshProjects = useCallback(async () => { setProjects((await loadProjects()).projects) }, [])
   return { assets, setAssets, compositions, ready, loadError, lastSavedId, clearSavedFocus, saveState, flushAssets, addComposition, removeComposition, deleteResources,
-    projects, projectId, switching, switchProject, createProject, updateProject, stageDraft, persistDraft, flushWorkspace, copyProjectAssets }
+    projects, projectId, switching, switchProject, createProject, updateProject, stageDraft, persistDraft, flushWorkspace, copyProjectAssets, refreshProjects, registerToolSave }
 }
 export type ResourceLibrary = ReturnType<typeof useResourceLibrary>

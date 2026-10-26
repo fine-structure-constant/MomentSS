@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { TextAppearance } from '../types'
 import { ensureTextFonts, fontFamilies } from '../lib/fonts'
+import { emojiUrls } from '../lib/emojiArt'
 
 export function useTextFonts(styles: TextAppearance[]) {
   const [state, setState] = useState({ revision: 0, loading: false, error: false })
-  const key = JSON.stringify(fontFamilies(styles))
+  const key = JSON.stringify([fontFamilies(styles), emojiUrls(styles)])
   useEffect(() => {
     let active = true
     setState((current) => ({ ...current, loading: true, error: false }))

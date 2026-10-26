@@ -1,0 +1,38 @@
+export const advancedCN = {
+  'lease.unsupported': '请通过 HTTPS 在新版浏览器中打开，以启用安全的本地编辑与保存。',
+  'art.style': 'Emoji 风格', 'art.native': '原生（随设备）', 'art.twemoji-v17': 'Twemoji 扁平', 'art.fluent-v1': 'Fluent 彩色',
+  'art.note': '常用表情素材在本机提供；未收录表情使用系统字形。Apple 设备的原生模式使用其系统字体。',
+  'art.missing': '此风格未收录：{{emoji}}，这些表情将使用系统字形。',
+  'backup.export': '导出可编辑项目包', 'backup.import': '从项目包恢复为新任务', 'backup.invalid': '项目包格式、版本或完整性无效，原任务未被修改。',
+  'backup.done': '项目包已恢复到新任务。', 'backup.failed': '项目包处理失败，请检查文件或可用存储空间。', 'backup.name': '恢复的任务',
+  'storage.usage': '本站已用约 {{used}} MB / 可用额度 {{quota}} MB', 'storage.compact': '清理未被引用的图片数据', 'storage.compacted': '已清理 {{count}} 项无引用数据；现有作品不变。',
+  'lease.wait': '正在打开本地工作区…', 'lease.busy': '此工作区正在另一个标签页编辑。请关闭那一页，再重新打开，避免互相覆盖。', 'lease.retry': '重新打开工作区',
+  'import.progress': '正在导入 {{current}} / {{total}}', 'import.cancel': '取消剩余导入', 'import.failed': '以下文件未能导入', 'import.retry': '重试失败文件', 'import.reason': '文件损坏或格式无法解码', 'import.unsupported': '不支持的图片格式', 'import.cancelled': '已取消，成功导入的资源已保留。',
+  'style.copy': '复制样式', 'style.paste': '粘贴样式', 'style.copied': '已复制样式，不包含文字、图片和取景。',
+  'layers.multi': '多选图层', 'layers.combine': '将所选图片组成一行', 'layers.ratio': '各图宽度比例（以逗号分隔）', 'layers.invalid': '请选择 2–4 个独立图片图层。',
+  'template.label': '快速插入模板', 'template.title': '旅行标题', 'template.caption': '照片说明', 'template.date': '日期分隔',
+  'grid.source': '从本任务资源选择', 'grid.chooseSource': '选择图片或已保存长图', 'grid.zip': '下载切图 ZIP', 'grid.single': '下载第 {{number}} 张', 'grid.size': '每张边长上限', 'grid.format': '切图格式', 'grid.reset': '更换来源',
+  'offline.open': '离线与版本', 'offline.prepare': '准备完整离线包', 'offline.progress': '正在准备离线资源 {{current}} / {{total}}', 'offline.ready': '完整离线包已就绪，可断网重新打开。', 'offline.error': '离线包准备失败或空间不足，可联网后重试。', 'offline.partial': '尚未准备完整离线包；字体或 Emoji 可能无法离线使用。', 'offline.version': '版本 {{version}}', 'offline.update': '发现新版本，保存后刷新以更新', 'offline.reload': '刷新应用', 'offline.online': '当前在线', 'offline.offline': '当前离线', 'offline.unsupported': '当前浏览器或打开方式不支持离线包，请通过 HTTPS 打开。',
+} as const
+export const advancedEN: Record<keyof typeof advancedCN, string> = {
+  'lease.unsupported': 'Open over HTTPS in a current browser to enable safe local editing and saving.',
+  'art.style': 'Emoji style', 'art.native': 'Native (device font)', 'art.twemoji-v17': 'Twemoji flat', 'art.fluent-v1': 'Fluent color', 'art.note': 'Common artwork is served locally; missing emoji use device glyphs. Native mode uses Apple system glyphs on Apple devices.', 'art.missing': 'Not in this pack: {{emoji}}. Device glyphs will be used.',
+  'backup.export': 'Export editable project', 'backup.import': 'Restore package as a new task', 'backup.invalid': 'Invalid package format, version or integrity. Your original task was preserved.', 'backup.done': 'Project restored as a new task.', 'backup.failed': 'Could not process the package. Check the file or available storage.', 'backup.name': 'Restored task',
+  'storage.usage': 'Site storage: about {{used}} MB / {{quota}} MB quota', 'storage.compact': 'Clean unused image data', 'storage.compacted': 'Removed {{count}} unreferenced items. Existing work is preserved.',
+  'lease.wait': 'Opening local workspace…', 'lease.busy': 'Another tab is editing this workspace. Close it and reopen here to prevent conflicting saves.', 'lease.retry': 'Reopen workspace',
+  'import.progress': 'Importing {{current}} / {{total}}', 'import.cancel': 'Cancel remaining imports', 'import.failed': 'Files not imported', 'import.retry': 'Retry failed files', 'import.reason': 'Damaged file or unsupported decoding', 'import.unsupported': 'Unsupported image format', 'import.cancelled': 'Cancelled. Successfully imported resources were kept.',
+  'style.copy': 'Copy style', 'style.paste': 'Paste style', 'style.copied': 'Style copied without content or cropping.', 'layers.multi': 'Select layers', 'layers.combine': 'Combine selected photos into a row', 'layers.ratio': 'Photo width ratios (comma separated)', 'layers.invalid': 'Select 2–4 standalone photo layers.',
+  'template.label': 'Insert a template', 'template.title': 'Travel title', 'template.caption': 'Photo caption', 'template.date': 'Date divider', 'grid.source': 'Choose from this task', 'grid.chooseSource': 'Select a photo or saved collage', 'grid.zip': 'Download tile ZIP', 'grid.single': 'Download tile {{number}}', 'grid.size': 'Maximum tile edge', 'grid.format': 'Tile format', 'grid.reset': 'Change source',
+  'offline.open': 'Offline and version', 'offline.prepare': 'Prepare full offline pack', 'offline.progress': 'Preparing offline resources {{current}} / {{total}}', 'offline.ready': 'Full offline pack ready. You can reopen without a connection.', 'offline.error': 'Could not prepare offline resources. Check connectivity and storage, then retry.', 'offline.partial': 'Full offline pack not prepared. Fonts or emoji may be unavailable offline.', 'offline.version': 'Version {{version}}', 'offline.update': 'New version available. Save your work, then refresh.', 'offline.reload': 'Refresh application', 'offline.online': 'Online', 'offline.offline': 'Offline', 'offline.unsupported': 'Offline packs need a supported browser and HTTPS.',
+}
+export const advancedTW: Record<keyof typeof advancedCN, string> = {
+  'lease.unsupported': '請透過 HTTPS 在新版瀏覽器中開啟，以啟用安全的本機編輯與儲存。',
+  'art.style': 'Emoji 風格', 'art.native': '原生（隨裝置）', 'art.twemoji-v17': 'Twemoji 扁平', 'art.fluent-v1': 'Fluent 彩色', 'art.note': '常用表情素材由本機提供；未收錄表情使用系統字形。Apple 裝置的原生模式使用其系統字型。', 'art.missing': '此風格未收錄：{{emoji}}，這些表情將使用系統字形。',
+  'backup.export': '匯出可編輯專案包', 'backup.import': '從專案包還原為新任務', 'backup.invalid': '專案包格式、版本或完整性無效，原任務未被修改。', 'backup.done': '專案包已還原到新任務。', 'backup.failed': '專案包處理失敗，請檢查檔案或可用儲存空間。', 'backup.name': '還原的任務',
+  'storage.usage': '本站已用約 {{used}} MB / 可用額度 {{quota}} MB', 'storage.compact': '清理未被參照的圖片資料', 'storage.compacted': '已清理 {{count}} 項無參照資料；現有作品不變。',
+  'lease.wait': '正在開啟本機工作區…', 'lease.busy': '此工作區正在另一個分頁編輯。請關閉該分頁，再重新開啟，避免互相覆寫。', 'lease.retry': '重新開啟工作區',
+  'import.progress': '正在匯入 {{current}} / {{total}}', 'import.cancel': '取消剩餘匯入', 'import.failed': '以下檔案未能匯入', 'import.retry': '重試失敗檔案', 'import.reason': '檔案損壞或格式無法解碼', 'import.unsupported': '不支援的圖片格式', 'import.cancelled': '已取消，成功匯入的資源已保留。',
+  'style.copy': '複製樣式', 'style.paste': '貼上樣式', 'style.copied': '已複製樣式，不包含文字、圖片和取景。', 'layers.multi': '多選圖層', 'layers.combine': '將所選圖片組成一列', 'layers.ratio': '各圖寬度比例（以逗號分隔）', 'layers.invalid': '請選擇 2–4 個獨立圖片圖層。',
+  'template.label': '快速插入範本', 'template.title': '旅行標題', 'template.caption': '照片說明', 'template.date': '日期分隔', 'grid.source': '從本任務資源選擇', 'grid.chooseSource': '選擇圖片或已儲存長圖', 'grid.zip': '下載切圖 ZIP', 'grid.single': '下載第 {{number}} 張', 'grid.size': '每張邊長上限', 'grid.format': '切圖格式', 'grid.reset': '更換來源',
+  'offline.open': '離線與版本', 'offline.prepare': '準備完整離線包', 'offline.progress': '正在準備離線資源 {{current}} / {{total}}', 'offline.ready': '完整離線包已就緒，可斷網重新開啟。', 'offline.error': '離線包準備失敗或空間不足，可連線後重試。', 'offline.partial': '尚未準備完整離線包；字型或 Emoji 可能無法離線使用。', 'offline.version': '版本 {{version}}', 'offline.update': '發現新版本，儲存後重新整理以更新', 'offline.reload': '重新整理應用', 'offline.online': '目前在線', 'offline.offline': '目前離線', 'offline.unsupported': '目前瀏覽器或開啟方式不支援離線包，請透過 HTTPS 開啟。',
+}

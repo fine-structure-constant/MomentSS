@@ -1,5 +1,5 @@
 import { AlignCenter, AlignLeft, AlignRight, Bold, Italic, List, ListOrdered, Redo2, Smile, Underline, Undo2 } from 'lucide-react'
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { TextStyleKit } from '@tiptap/extension-text-style'
@@ -9,7 +9,7 @@ import type { RichTextDocument, TextAppearance } from '../types'
 import { useI18n } from '../i18n'
 import { FONT_OPTIONS } from '../lib/fonts'
 import { plainTextDocument } from '../lib/richText'
-import { EmojiPicker } from './EmojiPicker'
+import { EmojiPopover } from './EmojiPopover'
 
 export default function RichTextEditor({ value, onChange }: { value: TextAppearance; onChange: (patch: Partial<TextAppearance>) => void }) {
   const { t } = useI18n()
@@ -21,6 +21,7 @@ export default function RichTextEditor({ value, onChange }: { value: TextAppeara
   const id = useId()
   const selection = useRef<{ from: number; to: number } | null>(null)
   const sizeInput = useRef<HTMLInputElement>(null)
+  const emojiAnchor = useRef<HTMLButtonElement>(null)
   const [sizeDraft, setSizeDraft] = useState(String(value.fontSize))
   const extensions = useMemo(() => [StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, codeBlock: false, code: false, horizontalRule: false }), TextStyleKit.configure({ backgroundColor: false, lineHeight: false }), TextAlign.configure({ types: ['paragraph', 'heading'] }), Markdown], [])
   const initialContent = useRef(value.richText ?? plainTextDocument(value.text))
@@ -48,6 +49,13 @@ export default function RichTextEditor({ value, onChange }: { value: TextAppeara
     // Updates from this editor already have the same normalized JSON and preserve selection.
   }, [editor, value.richText, value.text])
   const currentSize = editor ? parseFloat(editor.getAttributes('textStyle').fontSize) || value.fontSize : value.fontSize
+  useLayoutEffect(() => {
+    if (!editor || editor.isDestroyed) return
+    for (const node of [editor.view.dom, ...editor.view.dom.querySelectorAll<HTMLElement>('span')]) {
+      const rgb = getComputedStyle(node).color.match(/[\d.]+/g)?.slice(0, 3).map(Number) ?? [0, 0, 0]
+      node.classList.toggle('editor-light-text', rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722 > 185)
+    }
+  }, [editor, editor?.state.doc, value.color])
   useEffect(() => { if (document.activeElement !== sizeInput.current) setSizeDraft(String(Math.round(currentSize))) }, [currentSize, editor?.state.selection.from, editor?.state.selection.to])
   if (!editor) return null
   const currentFont = editor.getAttributes('textStyle').fontFamily || value.fontFamily
@@ -67,7 +75,7 @@ export default function RichTextEditor({ value, onChange }: { value: TextAppeara
   return <div className="rich-editor" style={{ '--text-base-font': `${value.fontSize}px`, '--text-base-family': value.fontFamily, '--text-base-color': value.color, '--text-base-line': value.lineHeight, '--text-base-align': value.align } as CSSProperties} onKeyDown={(event) => {
     if (emojiOpen && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeEmoji() }
   }}>
-    <div className="text-content-field__header"><span className="field__label">{t('text.content')}</span><button type="button" className="emoji-trigger" aria-expanded={emojiOpen} aria-controls={id} onClick={toggleEmoji}><Smile size={16} />{t('emoji.title')}</button></div>
+    <div className="text-content-field__header"><span className="field__label">{t('text.content')}</span><button ref={emojiAnchor} type="button" className="emoji-trigger" aria-expanded={emojiOpen} aria-controls={id} onClick={toggleEmoji}><Smile size={16} />{t('emoji.title')}</button></div>
     <div className="rich-editor__formats" role="group" aria-label={t('rich.format')}>
       <select aria-label={t('rich.block')} value={editor.isActive('heading', { level: 1 }) ? 'h1' : editor.isActive('heading', { level: 2 }) ? 'h2' : editor.isActive('heading', { level: 3 }) ? 'h3' : editor.isActive('blockquote') ? 'quote' : 'paragraph'} onChange={(event) => {
         const type = event.currentTarget.value
@@ -90,7 +98,7 @@ export default function RichTextEditor({ value, onChange }: { value: TextAppeara
       <button type="button" aria-label={t('rich.redo')} disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}><Redo2 size={17} /></button>
     </div>
     <div className="rich-editor__document"><EditorContent editor={editor} /></div>
-    {emojiOpen && <EmojiPicker id={id} onClose={closeEmoji} onInsert={(emoji) => { editor.chain().focus().setTextSelection(selection.current ?? editor.state.selection).insertContent(emoji).run(); setEmojiOpen(false) }} />}
+    {emojiOpen && <EmojiPopover anchor={emojiAnchor} id={id} style={value.emojiStyle} onClose={closeEmoji} onInsert={(emoji) => { editor.chain().focus().setTextSelection(selection.current ?? editor.state.selection).insertContent(emoji).run(); setEmojiOpen(false) }} />}
     <p className="rich-editor__hint">{t('rich.hint')}</p>
     <div className="rich-editor__secondary"><button type="button" className="text-button" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>{t('rich.clear')}</button><button type="button" className="text-button" aria-expanded={markdownOpen} onClick={() => setMarkdownOpen((open) => !open)}>{t('rich.markdown')}</button></div>
     {markdownOpen && <div className="rich-editor__markdown"><label className="field"><span className="field__label">{t('rich.markdownLabel')}</span><textarea value={markdown} onChange={(event) => setMarkdown(event.currentTarget.value)} rows={5} /></label><p className="section-copy">{t('rich.markdownHint')}</p><button type="button" className="secondary-button" disabled={!markdown.trim()} onClick={() => { editor.commands.setContent(markdown, { contentType: 'markdown' }); setMarkdownOpen(false); editor.commands.focus() }}>{t('rich.applyMarkdown')}</button></div>}

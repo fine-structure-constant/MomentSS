@@ -91,7 +91,7 @@ test('refresh retains the saved composition target and updating keeps its identi
   await expect(card).toHaveCount(1)
   await expect(card).toHaveAttribute('data-composition-id', id!)
   await expect.poll(() => page.evaluate((compositionId) => new Promise<number>((resolve, reject) => {
-    const request = indexedDB.open('liubai-collage', 3)
+    const request = indexedDB.open('liubai-collage', 4)
     request.onerror = () => reject(request.error)
     request.onsuccess = () => { const db = request.result; const tx = db.transaction('assets'); const get = tx.objectStore('assets').get(`composition:${compositionId}`); tx.oncomplete = () => { db.close(); resolve(get.result?.blocks.length ?? 0) } }
   }), id)).toBe(2)

@@ -43,7 +43,7 @@ export function removeAssetFromBlocks(blocks: ComposerBlock[], assetId: string):
     if (block.type === 'photo-row') {
       const remaining = block.photos.filter((photo) => photo.id !== assetId)
       if (remaining.length === 1) return remaining
-      return [block]
+      return remaining.length !== block.photos.length ? [{ ...block, photos: remaining, widths: block.widths?.filter((_, i) => block.photos[i].id !== assetId) }] : [block]
     }
     return block.id === assetId ? [] : [block]
   })
@@ -87,7 +87,7 @@ export function suggestRowHeightRatio(photos: Array<Pick<PhotoBlock, 'width' | '
 
 export function swapRowPhotos(blocks: ComposerBlock[], rowId: string): ComposerBlock[] {
   return blocks.map((block) => block.type === 'photo-row' && block.id === rowId
-    ? { ...block, photos: [block.photos[1], block.photos[0]] as [PhotoBlock, PhotoBlock] }
+    ? { ...block, photos: [...block.photos].reverse(), widths: block.widths ? [...block.widths].reverse() : undefined }
     : block)
 }
 

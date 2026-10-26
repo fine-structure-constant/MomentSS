@@ -13,6 +13,7 @@ import { isImportableImage, prepareImageFile } from './imageImport'
 import { readPhotoMetadata } from './photoMetadata'
 import { ensureBlockFonts } from './fonts'
 import type { TextRun } from './richText'
+import { loadedEmoji } from './emojiArt'
 
 interface LoadedImage {
   source: CanvasImageSource
@@ -132,7 +133,11 @@ function drawTextRuns(context: CanvasRenderingContext2D, runs: TextRun[], x: num
   for (const run of runs) {
     context.font = `${run.style.italic ? 'italic' : 'normal'} ${run.style.fontWeight} ${run.style.fontSize}px ${run.style.fontFamily}`
     context.fillStyle = run.style.color
-    context.fillText(run.text, x + run.x, y + run.y)
+    if (run.emoji) {
+      const image = loadedEmoji(run.emoji)
+      if (!image) throw new Error('emoji-not-ready')
+      context.drawImage(image, x + run.x, y + run.y - run.style.fontSize * .8, run.width, run.style.fontSize)
+    } else context.fillText(run.text, x + run.x, y + run.y)
     for (const decoration of [run.style.underline ? 0.12 : null, run.style.strike ? -0.3 : null]) {
       if (decoration === null) continue
       context.fillRect(x + run.x, y + run.y + run.style.fontSize * decoration, run.width, Math.max(1, run.style.fontSize / 20))
@@ -314,12 +319,13 @@ export async function exportGridTiles(
   source: SourceImage,
   crop: CropState,
   count: 4 | 6 | 9,
+  options: { size?: number; format?: 'image/jpeg' | 'image/png' } = {},
 ): Promise<Blob[]> {
   const { columns, rows } = gridDimensions(count)
   const targetAspect = columns / rows
   const rect = computeCropRect(source.width, source.height, targetAspect, crop)
   const naturalTile = Math.floor(rect.sw / columns)
-  const tileSize = Math.max(1, Math.min(1440, naturalTile))
+  const tileSize = Math.max(1, Math.min(options.size ?? 1440, naturalTile))
   const loaded = await loadImage(source.blob)
   const blobs: Blob[] = []
 
@@ -341,7 +347,7 @@ export async function exportGridTiles(
         tileSize,
         tileSize,
       )
-      blobs.push(await canvasToBlob(canvas, 'image/jpeg', 0.94))
+      blobs.push(await canvasToBlob(canvas, options.format ?? 'image/jpeg', 0.94))
     }
   }
   loaded.close()
@@ -370,29 +376,48 @@ export function downloadBlob(blob: Blob, fileName: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 2_000)
 }
 
-export async function filesToPhotoBlocks(files: File[]): Promise<PhotoBlock[]> {
+export interface ImportProgress { current: number; total: number; failures: Array<{ file: File; reason: 'unsupported' | 'decode' }>; cancelled: boolean }
+export async function filesToPhotoBlocks(files: File[], options: { signal?: AbortSignal; onProgress?: (progress: ImportProgress) => void } = {}): Promise<PhotoBlock[]> {
   const photos: PhotoBlock[] = []
   const batchId = crypto.randomUUID()
+  const progress: ImportProgress = { current: 0, total: files.length, failures: [], cancelled: false }
+  options.onProgress?.({ ...progress })
   for (const [index, file] of files.entries()) {
+    if (options.signal?.aborted) { progress.cancelled = true; break }
     try {
-    if (!await isImportableImage(file)) continue
+    if (!await isImportableImage(file)) { progress.failures.push({ file, reason: 'unsupported' }); continue }
     const metadata = await readPhotoMetadata(file)
     const blob = await prepareImageFile(file)
     const dimensions = await inspectImage(blob)
     photos.push({
       id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       type: 'photo',
+      schemaVersion: 2,
       name: file.name,
       blob,
       width: dimensions.width,
       height: dimensions.height,
       ...metadata,
+      thumbnail: await makeThumbnail(blob).catch(() => undefined),
       batchId,
       importOrder: index,
     })
-    } catch { /* Keep valid files in the batch; the caller reports the skipped count. */ }
+    } catch { progress.failures.push({ file, reason: 'decode' }) }
+    finally { progress.current = index + 1; options.onProgress?.({ ...progress, failures: [...progress.failures] }) }
   }
+  progress.cancelled ||= !!options.signal?.aborted
+  options.onProgress?.({ ...progress, failures: [...progress.failures] })
   return photos
+}
+
+export async function makeThumbnail(blob: Blob): Promise<Blob> {
+  const loaded = await loadImage(blob)
+  try {
+    const ratio = Math.min(1, 256 / Math.max(loaded.width, loaded.height))
+    const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(loaded.width * ratio)); canvas.height = Math.max(1, Math.round(loaded.height * ratio))
+    const ctx = canvas.getContext('2d')!; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.drawImage(loaded.source, 0, 0, canvas.width, canvas.height)
+    return canvasToBlob(canvas, 'image/jpeg', .8)
+  } finally { loaded.close() }
 }
 
 export async function fileToSourceImage(file: File): Promise<SourceImage> {

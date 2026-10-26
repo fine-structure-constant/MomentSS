@@ -1,9 +1,10 @@
 import type { RichTextDocument, RichTextNode, TextAlign, TextAppearance } from '../types'
 import { splitGraphemes } from './textInput'
 import type { TextMeasure } from './stitchLayout'
+import { emojiArtwork } from './emojiArt'
 
 export interface RunStyle extends TextAppearance { underline?: boolean; strike?: boolean }
-export interface TextRun { text: string; x: number; y: number; width: number; style: RunStyle }
+export interface TextRun { text: string; x: number; y: number; width: number; style: RunStyle; emoji?: string }
 export interface RichLayout { lines: string[]; lineHeight: number; height: number; runs: TextRun[]; rich: boolean }
 interface Inline { text: string; style: RunStyle }
 interface Paragraph { spans: Inline[]; align: TextAlign; indent: number; gap: number; style: RunStyle }
@@ -66,7 +67,7 @@ export function layoutRichText(style: TextAppearance, maxWidth: number, measure:
   for (const paragraph of paragraphs(style)) {
     const indent = Math.min(paragraph.indent, maxWidth * 0.4)
     const available = Math.max(1, maxWidth - indent)
-    let line: Array<Inline & { width: number }> = []
+    let line: Array<Inline & { width: number; emoji?: string }> = []
     let lineWidth = 0
     const flush = () => {
       const fontSize = Math.max(paragraph.style.fontSize, ...line.map((part) => part.style.fontSize))
@@ -81,14 +82,15 @@ export function layoutRichText(style: TextAppearance, maxWidth: number, measure:
     for (const span of paragraph.spans) for (const grapheme of splitGraphemes(span.text)) {
       if (grapheme === '\n') { flush(); continue }
       let last = line.at(-1)
-      const merge = !!last && styleKey(last.style) === styleKey(span.style)
-      let width = measure(merge ? last!.text + grapheme : grapheme, span.style)
-      if (line.length && lineWidth - (merge ? last!.width : 0) + width > available) { flush(); last = undefined; width = measure(grapheme, span.style) }
+      const emoji = emojiArtwork(grapheme, span.style.emojiStyle)
+      const merge = !!last && !last.emoji && !emoji && styleKey(last.style) === styleKey(span.style)
+      let width = emoji ? span.style.fontSize : measure(merge ? last!.text + grapheme : grapheme, span.style)
+      if (line.length && lineWidth - (merge ? last!.width : 0) + width > available) { flush(); last = undefined; width = emoji ? span.style.fontSize : measure(grapheme, span.style) }
       if (last && merge) { lineWidth += width - last.width; last.text += grapheme; last.width = width }
-      else { line.push({ text: grapheme, style: span.style, width }); lineWidth += width }
+      else { line.push({ text: grapheme, style: span.style, width, emoji }); lineWidth += width }
     }
     flush()
     top += paragraph.gap
   }
-  return { runs, lines, height: top, lineHeight: style.fontSize * style.lineHeight, rich: !!style.richText }
+  return { runs, lines, height: top, lineHeight: style.fontSize * style.lineHeight, rich: !!style.richText || !!style.emojiStyle && style.emojiStyle !== 'native' }
 }

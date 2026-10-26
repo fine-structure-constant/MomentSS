@@ -5,6 +5,7 @@ import { useI18n } from '../i18n'
 import type { PhotoOverlay, TextAppearance } from '../types'
 import { layoutPhotoOverlay, type PhotoPlacement, type StitchLayout, type StitchLayoutItem, type TextMeasure } from '../lib/stitchLayout'
 import { TextRunsPreview } from './TextRunsPreview'
+import { useVisibility } from '../hooks/useVisibility'
 
 function textStyle(style: TextAppearance): CSSProperties {
   return { fontFamily: style.fontFamily, fontSize: style.fontSize, fontWeight: style.fontWeight, fontStyle: style.italic ? 'italic' : 'normal' }
@@ -46,14 +47,15 @@ export function PhotoTextBoxPreview({ overlay, width, height, measure }: { overl
 
 function PhotoContent({ placement, measure }: { placement: PhotoPlacement; measure: TextMeasure }) {
   const { photo, crop, width, height } = placement
-  const url = useObjectUrl(photo.blob)
-  return <>
+  const { ref, visible } = useVisibility()
+  const url = useObjectUrl(visible ? photo.blob : null)
+  return <span ref={ref} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
     {url && <img className="structured-photo" src={url} alt="" decoding="async" style={{
       width: `${photo.width / crop.sw * 100}%`, height: `${photo.height / crop.sh * 100}%`,
       left: `${-crop.sx / crop.sw * 100}%`, top: `${-crop.sy / crop.sh * 100}%`,
     }} />}
     {photo.overlay && <Overlay overlay={photo.overlay} width={width} height={height} measure={measure} />}
-  </>
+  </span>
 }
 
 export function PhotoPlacementPreview({ placement, measure }: { placement: PhotoPlacement; measure: TextMeasure }) {

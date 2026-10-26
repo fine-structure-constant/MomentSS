@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { useI18n } from '../i18n'
+import { emojiArtwork } from '../lib/emojiArt'
 import { EMOJI_CATEGORIES, EMOJI_ENTRIES, readRecentEmoji, rememberEmoji, searchEmoji, type EmojiCategory, type EmojiEntry } from '../lib/emoji'
 
-export function EmojiPicker({ id, onInsert, onClose }: { id: string; onInsert: (emoji: string) => void; onClose: () => void }) {
+export function EmojiPicker({ id, onInsert, onClose, style }: { id: string; onInsert: (emoji: string) => void; onClose: () => void; style?: string }) {
   const { t, locale } = useI18n()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<EmojiCategory>('faces')
@@ -15,7 +16,7 @@ export function EmojiPicker({ id, onInsert, onClose }: { id: string; onInsert: (
     key={entry.value} type="button" title={entry.names[locale]}
     aria-label={t('emoji.insert', { emoji: entry.value, name: entry.names[locale] })}
     onClick={() => { rememberEmoji(entry.value); onInsert(entry.value) }}
-  >{entry.value}</button>)}</div>
+  >{emojiArtwork(entry.value, style) ? <img src={emojiArtwork(entry.value, style)} alt={entry.value} /> : entry.value}</button>)}</div>
 
   return <section id={id} className="emoji-picker" aria-label={t('emoji.title')} onKeyDown={(event) => {
     if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose() }

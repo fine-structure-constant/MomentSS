@@ -1,6 +1,8 @@
 import type { MessageKey } from '../types'
+import { advancedTW } from './advanced'
 
 export const zhTW = {
+  ...advancedTW,
   'layer.insertAfter': '在所選圖層後插入文字',
   'layer.insertBefore': '在此圖層前插入',
   'layer.duplicate': '複製圖層',
@@ -9,7 +11,7 @@ export const zhTW = {
   'layer.dragHint': '按空白鍵開始排序，用方向鍵移動，空白鍵確認，Escape 取消。觸控按住手柄拖動。',
   'layer.moved': '圖層已從第 {{from}} 位移至第 {{to}} 位。',
   'font.loading': '正在載入所用字型…',
-  'font.error': '字型載入失敗，預覽暫用系統字型；請連線重試後再匯出。',
+  'font.error': '字型或表情素材載入失敗，請連線重試後再匯出。',
   'font.legacy': '原系統字型（舊內容）',
   'rich.loading': '正在開啟文字編輯器…',
   'rich.format': '文字格式',
@@ -221,7 +223,7 @@ export const zhTW = {
   'common.done': '完成', 'common.delete': '刪除', 'common.replaceImage': '更換圖片',
   'stitch.draftReadError': '本機草稿讀取失敗；你仍可以繼續編輯並匯出。', 'stitch.previewError': '預覽產生失敗，請移除無法讀取的圖片後重試。', 'stitch.addedPhotos': '已加入 {{count}} 張照片。', 'stitch.imageReadError': '圖片讀取或轉換失敗。請確認檔案完整，或改用 JPG、PNG、WebP、AVIF。',
   'stitch.fileName': '留白拼圖-長圖-{{date}}.{{extension}}', 'stitch.downloadReduced': '已安全縮放至 {{width}} × {{height}} 後下載。', 'stitch.downloaded': '已下載 {{width}} × {{height}} 長圖。', 'stitch.exportError': '匯出失敗。請減少照片數量或降低輸出寬度後重試。', 'stitch.confirmClear': '清空目前長圖草稿？已匯入資源會保留，畫布編輯無法復原。', 'stitch.clearTitle': '清空長圖草稿', 'stitch.skippedPhotos': '有 {{count}} 個檔案無法讀取，已略過；其餘照片已加入。', 'stitch.removeFromCanvas': '從畫布移除', 'stitch.removeFromRow': '從這一列移除', 'stitch.removeLayerTitle': '從畫布移除這一層？', 'stitch.removeLayerBody': '「{{name}}」會從目前長圖移除，資源庫中的素材會保留。', 'stitch.removeFromRowTitle': '從這一列移除這張圖片？', 'stitch.removeFromRowBody': '「{{name}}」會從雙圖橫排移除，剩下的圖片會變成獨立圖層。', 'stitch.layerRemoved': '已從畫布移除「{{name}}」。', 'stitch.overlayRemoved': '已移除圖片文字。', 'stitch.moveTop': '移到最前', 'stitch.moveBottom': '移到最後', 'stitch.swapRowPhotos': '交換左右', 'stitch.pairNeedsPhoto': '下面一層不是獨立圖片，無法並排。', 'stitch.paired': '已並排成一列。', 'stitch.cleared': '長圖草稿已清空，已匯入資源已保留。',
-  'stitch.sequenceAria': '長圖內容順序', 'stitch.sequence': '圖文順序', 'stitch.blockCount': '{{count}} 個內容區塊', 'stitch.startWithPhotos': '從照片開始', 'stitch.clearDraft': '清空草稿', 'stitch.addContent': '新增內容', 'stitch.panelMenu': '右側工作區', 'stitch.panelImport': '資源', 'stitch.panelLayers': '圖層', 'stitch.panelAdjust': '調整', 'stitch.openImport': '開啟資源欄', 'stitch.selectLayerHint': '請先在圖層面板選擇一張圖片或文字卡片，再調整其內部屬性。', 'stitch.addPhotos': '新增照片', 'stitch.textCard': '文字卡片', 'stitch.blankText': '空白文字', 'stitch.moveUp': '上移', 'stitch.moveDown': '下移', 'stitch.insertTextHere': '在第 {{number}} 層前插入文字', 'stitch.pairDownward': '向下並排', 'stitch.pairDownwardAria': '把第 {{number}} 層與其下一層並排', 'stitch.splitRow': '拆為上下兩行', 'stitch.photoRow': '雙圖橫排', 'stitch.rowHeight': '橫排高度', 'stitch.rowGap': '雙圖間距', 'stitch.sortHint': '上傳多張照片後，在這裡拖動排序。',
+  'stitch.sequenceAria': '長圖內容順序', 'stitch.sequence': '圖文順序', 'stitch.blockCount': '{{count}} 個內容區塊', 'stitch.startWithPhotos': '從照片開始', 'stitch.clearDraft': '清空草稿', 'stitch.addContent': '新增內容', 'stitch.panelMenu': '右側工作區', 'stitch.panelImport': '資源', 'stitch.panelLayers': '圖層', 'stitch.panelAdjust': '調整', 'stitch.openImport': '開啟資源欄', 'stitch.selectLayerHint': '請先在圖層面板選擇一張圖片或文字卡片，再調整其內部屬性。', 'stitch.addPhotos': '新增照片', 'stitch.textCard': '文字卡片', 'stitch.blankText': '空白文字', 'stitch.moveUp': '上移', 'stitch.moveDown': '下移', 'stitch.insertTextHere': '在第 {{number}} 層前插入文字', 'stitch.pairDownward': '向下並排', 'stitch.pairDownwardAria': '把第 {{number}} 層與其下一層並排', 'stitch.splitRow': '拆為獨立圖片', 'stitch.photoRow': '多圖橫排', 'stitch.rowHeight': '橫排高度', 'stitch.rowGap': '雙圖間距', 'stitch.sortHint': '上傳多張照片後，在這裡拖動排序。',
   'stitch.previewAria': '長圖即時預覽', 'stitch.liveCanvas': '即時畫布', 'stitch.waiting': '等待內容', 'stitch.heroTitle': '把旅途，排成一張長長的故事', 'stitch.heroBody': '照片留在你的瀏覽器裡。新增後可拖動排序、插入文字，再下載高畫質長圖。', 'stitch.choosePhotos': '選擇旅行照片', 'stitch.settingsAria': '編輯設定', 'stitch.saving': '正在儲存', 'stitch.saveError': '儲存失敗', 'stitch.saved': '本機草稿已儲存', 'stitch.generating': '正在產生', 'stitch.download': '下載長圖',
   'stitch.textStyle': '文字樣式', 'stitch.verticalPadding': '上下留白', 'stitch.photoText': '圖片文字', 'stitch.photoFrame': '圖片容器', 'stitch.frameHeight': '容器高度', 'stitch.cropZoom': '內部縮放', 'stitch.resetPhotoFrame': '重設圖片容器', 'stitch.photoTextEmpty': '在獨立畫面編輯器中建立文字框，可直接拖到圖片任意位置。', 'stitch.addPhotoText': '新增圖片文字', 'stitch.photoTextAdded': '圖片文字已新增。開啟畫面編輯器可拖動位置，並調整文字框寬度、字型、顏色和角度。', 'stitch.editPhotoText': '編輯畫面文字', 'stitch.canvasSettings': '畫布設定', 'stitch.outputWidth': '輸出寬度', 'stitch.photoGap': '照片間距', 'stitch.outerPadding': '外側留白', 'stitch.backgroundColor': '背景顏色', 'stitch.format': '格式', 'stitch.jpgSmall': 'JPG · 檔案較小', 'stitch.pngLossless': 'PNG · 無損', 'stitch.jpgQuality': 'JPG 品質',
   'cover.loaded': '長圖已載入，請調整正方形取景框。', 'cover.readError': '圖片讀取或轉換失敗。請確認檔案完整，或改用 JPG、PNG、WebP、AVIF。', 'cover.squareFileName': '留白拼圖-方形封面.jpg', 'cover.squareDownloaded': '方形封面已下載。', 'cover.squareError': '封面產生失敗，請換一張尺寸較小的圖片重試。', 'cover.compositeFileName': '留白拼圖-置中封面長圖.jpg', 'cover.compositeReduced': '長圖已因瀏覽器畫布限制安全縮放後下載。', 'cover.compositeDownloaded': '置中封面長圖已下載。', 'cover.compositeError': '長圖產生失敗。請先壓縮原圖或改用桌面瀏覽器。',

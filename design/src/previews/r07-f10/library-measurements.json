@@ -1,0 +1,36 @@
+{
+  "platform": "win32",
+  "browser": "Chromium/Edge headless desktop",
+  "results": [
+    {
+      "count": 50,
+      "sample": "generated 1920x1280 SVG; not a real camera-roll benchmark",
+      "importedMs": 3318,
+      "reloadMs": 658,
+      "originalImagesInDOM": 2,
+      "thumbnailBytes": 128963,
+      "approximateStorage": {
+        "quota": 10737762304,
+        "usage": 344064,
+        "usageDetails": {
+          "indexedDB": 344064
+        }
+      }
+    },
+    {
+      "count": 200,
+      "sample": "generated 1920x1280 SVG; not a real camera-roll benchmark",
+      "importedMs": 7582,
+      "reloadMs": 746,
+      "originalImagesInDOM": 2,
+      "thumbnailBytes": 522038,
+      "approximateStorage": {
+        "quota": 10738585600,
+        "usage": 1167360,
+        "usageDetails": {
+          "indexedDB": 1167360
+        }
+      }
+    }
+  ]
+}

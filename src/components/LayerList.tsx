@@ -3,9 +3,11 @@ import { ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, CopyPlus, FoldVertical, G
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { ComposerBlock, PhotoBlock } from '../types'
+import { copyLayerStyle, pasteLayerStyle, type LayerStyle } from '../lib/layerStyles'
+import type { ComposerBlock, ImportedAsset, PhotoBlock } from '../types'
+import { findComposerAsset } from '../lib/composer'
 import { useI18n } from '../i18n'
-import { useObjectUrl } from '../hooks/useObjectUrl'
+import { LazyBlobImage } from './LazyBlobImage'
 
 interface Props {
   blocks: ComposerBlock[]
@@ -16,8 +18,9 @@ interface Props {
   onInsert: (index: number) => void
   onRemove: (id: string) => void
   onPair: (id: string) => void
+  onStyleApply: (asset: ImportedAsset) => void
 }
-function Thumbnail({ photo }: { photo: PhotoBlock }) { const url = useObjectUrl(photo.blob); return url ? <img src={url} alt="" /> : null }
+function Thumbnail({ photo }: { photo: PhotoBlock }) { return <LazyBlobImage blob={photo.thumbnail ?? photo.blob} /> }
 
 export function LayerList(props: Props) {
   const { t } = useI18n()
@@ -26,8 +29,16 @@ export function LayerList(props: Props) {
   const [dragging, setDragging] = useState(false)
   const [overId, setOverId] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
+  const [multi, setMulti] = useState(false), [checked, setChecked] = useState<string[]>([]), [copied, setCopied] = useState<LayerStyle | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 7 } }), useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
   const order = props.blocks.map((block) => block.id).join(',')
+  const selectedAsset = findComposerAsset(props.blocks, props.selectedId)
+  const paste = () => {
+    if (!copied || !selectedAsset) return
+    const updated = pasteLayerStyle(selectedAsset, copied) as ImportedAsset
+    props.onStyleApply(updated)
+    props.onChange(props.blocks.map((block) => block.type === 'photo-row' ? { ...block, photos: block.photos.map((photo) => photo.id === updated.id ? updated as PhotoBlock : photo) } : block.id === updated.id ? updated : block))
+  }
   useLayoutEffect(() => {
     const nodes = list.current?.querySelectorAll<HTMLElement>('[data-layer-id]') ?? []
     const next = new Map<string, DOMRect>()
@@ -50,6 +61,15 @@ export function LayerList(props: Props) {
     setAnnouncement(t('layer.moved', { from: from + 1, to: to + 1 }))
   }
   return <div className="layer-list" data-over-id={overId ?? undefined}>
+    <button type="button" className="text-button" aria-pressed={multi} onClick={() => { setMulti(!multi); setChecked([]) }}>{t('layers.multi')}</button>
+    {multi && <div className="layer-multi"><fieldset>{props.blocks.filter((block) => block.type === 'photo').map((block) => <label key={block.id}><input type="checkbox" checked={checked.includes(block.id)} onChange={(event) => { const checked = event.currentTarget.checked; setChecked((current) => checked ? [...current, block.id] : current.filter((id) => id !== block.id)) }} />{block.name}</label>)}</fieldset><button className="secondary-button" disabled={checked.length < 2 || checked.length > 4} onClick={() => {
+      const photos = props.blocks.filter((block): block is PhotoBlock => block.type === 'photo' && checked.includes(block.id))
+      if (photos.length < 2 || photos.length > 4) return
+      const id = crypto.randomUUID(), index = props.blocks.findIndex((block) => block.id === photos[0].id)
+      props.onChange(props.blocks.flatMap((block, i): ComposerBlock[] => i === index ? [{ id, type: 'photo-row', photos, heightRatio: 40, gap: 0 }] : checked.includes(block.id) ? [] : [block]))
+      props.onSelect(id); setChecked([]); setMulti(false)
+    }}>{t('layers.combine')}</button></div>}
+    <div className="layer-style-actions"><button className="text-button" disabled={!selectedAsset} onClick={() => { if (selectedAsset) { setCopied(copyLayerStyle(selectedAsset)); setAnnouncement(t('style.copied')) } }}>{t('style.copy')}</button><button className="text-button" disabled={!copied || !selectedAsset || copied.kind !== selectedAsset.type} onClick={paste}>{t('style.paste')}</button></div>
     <button type="button" className="secondary-button layer-insert" onClick={() => {
       const index = props.blocks.findIndex((block) => block.id === props.selectedId || block.type === 'photo-row' && block.photos.some((photo) => photo.id === props.selectedId))
       props.onInsert(index < 0 ? props.blocks.length : index + 1)

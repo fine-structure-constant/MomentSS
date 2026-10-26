@@ -44,7 +44,7 @@ test('touch drag reorders layers without requiring a mouse', async ({ page, cont
   await page.locator('input[type=file]').setInputFiles([image('one.svg'), image('two.svg')])
   await tab(page, '图层')
   const handles = page.locator('.layer-row__handle')
-  await handles.first().scrollIntoViewIfNeeded()
+  await handles.first().evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
   const first = (await handles.first().boundingBox())!, second = (await handles.nth(1).boundingBox())!
   const client = await context.newCDPSession(page)
   const x = first.x + first.width / 2, y = first.y + first.height / 2, end = second.y + second.height / 2

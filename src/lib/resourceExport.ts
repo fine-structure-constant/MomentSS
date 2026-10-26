@@ -18,7 +18,7 @@ export async function createComposition(name: string, blocks: ComposerBlock[], s
   await renderStitchLayout(canvas, layout, cover?.background ?? settings.background, Math.min(180, settings.width))
   const thumbnail = await canvasToBlob(canvas, 'image/png')
   return { ...snapshot, id: `composition-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name,
-    kind: cover ? 'cover' : 'collage', createdAt: Date.now(), width: layout.width, height: layout.height, thumbnail }
+    kind: cover ? 'cover' : 'collage', createdAt: Date.now(), width: layout.width, height: layout.height, thumbnail, schemaVersion: 2 }
 }
 
 export async function exportResource(resource: ImportedAsset | SavedComposition, format: 'image/png' | 'image/jpeg') {

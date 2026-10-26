@@ -1,0 +1,18 @@
+{
+  "twemoji": {
+    "revision": "v17.0.3",
+    "source": "https://github.com/jdecked/twemoji",
+    "license": "CC BY 4.0",
+    "attribution": "Twemoji graphics by Twitter and jdecked contributors, unmodified"
+  },
+  "fluent": {
+    "revision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+    "source": "https://github.com/microsoft/fluentui-emoji",
+    "license": "MIT",
+    "attribution": "Microsoft Corporation, unmodified"
+  },
+  "coverage": {
+    "twemoji-v17": 84,
+    "fluent-v1": 80
+  }
+}

@@ -46,6 +46,7 @@ jobs:
           npm run build
           npx playwright install --with-deps chromium
           npm run test:ui -- --workers=2
+          npm run test:offline -- --workers=2
           python3 -m unittest discover -s deploy/tests -v
       - name: Publish complete deployment bundle
         env:

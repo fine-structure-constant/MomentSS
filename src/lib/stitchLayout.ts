@@ -67,9 +67,11 @@ export function buildStitchLayout(blocks: ComposerBlock[], settings: ComposerSet
       photos = [placePhoto(block, 0, width, height)]
     } else if (block.type === 'photo-row') {
       height = width * ((block.heightRatio ?? 62) / 100)
-      const gap = Math.min(block.gap ?? settings.gap, width - 2)
-      const cellWidth = Math.max(1, (width - gap) / 2)
-      photos = block.photos.map((photo, index) => placePhoto(photo, index * (cellWidth + gap), cellWidth, height))
+      const gap = Math.max(0, Math.min(block.gap ?? settings.gap, (width - block.photos.length) / Math.max(1, block.photos.length - 1)))
+      const weights = block.photos.map((_, i) => Math.max(1, Math.min(100, block.widths?.[i] || 1)))
+      const total = weights.reduce((sum, weight) => sum + weight, 0), room = width - gap * (block.photos.length - 1)
+      let left = 0
+      photos = block.photos.map((photo, index) => { const cellWidth = room * weights[index] / total; const placed = placePhoto(photo, left, cellWidth, height); left += cellWidth + gap; return placed })
     } else {
       text = layoutRichText(block, Math.max(40, width - block.padding * 2), measure)
       const rotationRoom = Math.abs(Math.sin(block.rotation * Math.PI / 180)) * width * 0.12

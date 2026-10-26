@@ -2,7 +2,7 @@ import type { ComposerBlock, ImportedAsset, TextBlock } from '../types'
 import { flattenComposerAssets } from './composer'
 
 const TEXT_STYLE_KEYS: Array<keyof TextBlock> = [
-  'text', 'color', 'background', 'fontFamily', 'fontSize', 'fontWeight', 'italic', 'align', 'rotation', 'lineHeight', 'padding',
+  'text', 'color', 'background', 'fontFamily', 'fontSize', 'fontWeight', 'italic', 'align', 'rotation', 'lineHeight', 'padding', 'emojiStyle',
 ]
 
 /**

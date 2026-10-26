@@ -16,6 +16,7 @@ export interface RichTextDocument {
 }
 
 export interface ResourceMetadata {
+  schemaVersion?: number
   displayName?: string
   originalName?: string
   taskId?: string
@@ -38,6 +39,7 @@ export interface Project {
 }
 
 export interface TextAppearance {
+  emojiStyle?: 'native' | 'twemoji-v17' | 'fluent-v1'
   text: string
   richText?: RichTextDocument
   color: string
@@ -68,6 +70,7 @@ export interface PhotoOverlay extends TextAppearance {
 }
 
 export interface PhotoBlock extends ResourceMetadata {
+  thumbnail?: Blob
   id: string
   sourceId?: string
   type: 'photo'
@@ -87,7 +90,8 @@ export interface PhotoBlock extends ResourceMetadata {
 export interface PhotoRowBlock {
   id: string
   type: 'photo-row'
-  photos: [PhotoBlock, PhotoBlock]
+  photos: PhotoBlock[]
+  widths?: number[]
   /** Row height as a percentage of the full collage content width. */
   heightRatio?: number
   /** Gap between the two cells in output pixels. */

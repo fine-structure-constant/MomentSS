@@ -40,6 +40,7 @@ export function PhotoTextEditorModal({
   const imageUrl = useObjectUrl(photo.blob)
   const previewRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const dialogRef = useRef<HTMLElement>(null)
   const textDrag = useRef(false)
   const panDrag = useRef<{ x: number; y: number; crop: CropState } | null>(null)
 
@@ -61,10 +62,12 @@ export function PhotoTextEditorModal({
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
+    const previousFocus = document.activeElement as HTMLElement | null
     document.body.style.overflow = 'hidden'
     closeRef.current?.focus()
     return () => {
       document.body.style.overflow = previousOverflow
+      previousFocus?.focus({ preventScroll: true })
     }
   }, [])
 
@@ -131,7 +134,12 @@ export function PhotoTextEditorModal({
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose()
     }}>
-      <section className="photo-text-modal" role="dialog" aria-modal="true" aria-labelledby="photo-text-title">
+      <section ref={dialogRef} className="photo-text-modal" role="dialog" aria-modal="true" aria-labelledby="photo-text-title" onKeyDown={(event) => {
+        if (event.key !== 'Tab') return
+        const nodes = [...(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea, [contenteditable="true"], [tabindex="0"]') ?? [])].filter((node) => node.getClientRects().length)
+        if (event.shiftKey && document.activeElement === nodes[0]) { event.preventDefault(); nodes.at(-1)?.focus() }
+        else if (!event.shiftKey && document.activeElement === nodes.at(-1)) { event.preventDefault(); nodes[0]?.focus() }
+      }}>
         <header className="photo-text-modal__header">
           <div><h2 id="photo-text-title">{t('photoText.title')}</h2><p><Move size={14} /> {t('photoText.hint')}</p></div>
           <button ref={closeRef} type="button" className="icon-button" onClick={onClose} aria-label={t('photoText.close')}><X size={19} /></button>

@@ -8,6 +8,7 @@ import type { ToolId } from './types'
 import { useI18n, type MessageKey } from './i18n'
 import { useResourceLibrary } from './hooks/useResourceLibrary'
 import { ProjectManager } from './components/ProjectManager'
+import { useWorkspaceLease } from './hooks/useWorkspaceLease'
 
 const TOOLS: Array<{ id: ToolId; label: MessageKey; short: MessageKey; icon: typeof GalleryVerticalEnd }> = [
   { id: 'stitch', label: 'tool.stitch', short: 'tool.stitchShort', icon: GalleryVerticalEnd },
@@ -82,7 +83,7 @@ function App() {
         {!library.ready ? <div className="resource-loading" role={library.loadError ? 'alert' : 'status'}><div>{t(library.loadError ? 'resource.readError' : 'resource.loading')}{library.loadError && <button type="button" className="secondary-button" onClick={() => window.location.reload()}>{t('resource.refresh')}</button>}</div></div> : <>
           {activeTool === 'stitch' && <StitchTool key={library.projectId} library={library} onToast={showToast} onCover={(id) => { setCoverCompositionId(id); setActiveTool('cover') }} />}
           {activeTool === 'cover' && <CoverTool key={library.projectId} library={library} initialCompositionId={coverCompositionId} onResources={() => setActiveTool('stitch')} onToast={showToast} />}
-          {activeTool === 'grid' && <GridTool key={library.projectId} onToast={showToast} />}
+          {activeTool === 'grid' && <GridTool key={library.projectId} onToast={showToast} library={library} />}
         </>}
       </div>
 
@@ -91,4 +92,8 @@ function App() {
   )
 }
 
-export default App
+export default function WorkspaceGate() {
+  const state = useWorkspaceLease()
+  const { t } = useI18n()
+  return state === 'owned' ? <App /> : <div className="resource-loading" role="status"><div><p>{t(state === 'waiting' ? 'lease.wait' : state === 'unsupported' ? 'lease.unsupported' : 'lease.busy')}</p>{state === 'busy' && <button className="primary-button" onClick={() => location.reload()}>{t('lease.retry')}</button>}</div></div>
+}

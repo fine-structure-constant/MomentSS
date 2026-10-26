@@ -48,6 +48,7 @@ export function createTextBlock(defaultText: string, preset: Partial<TextAppeara
   return {
     id: `text-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     type: 'text',
+    schemaVersion: 2,
     text: defaultText,
     padding: 72,
     color: style.color,
@@ -59,6 +60,7 @@ export function createTextBlock(defaultText: string, preset: Partial<TextAppeara
     align: style.align,
     rotation: style.rotation,
     lineHeight: style.lineHeight,
+    ...(style.emojiStyle ? { emojiStyle: style.emojiStyle } : {}),
   }
 }
 
@@ -84,5 +86,6 @@ export function createPhotoOverlay(defaultText: string, preset: Partial<PhotoOve
     borderWidth: style.borderWidth,
     borderColor: style.borderColor,
     borderRadius: style.borderRadius,
+    ...(style.emojiStyle ? { emojiStyle: style.emojiStyle } : {}),
   }
 }
