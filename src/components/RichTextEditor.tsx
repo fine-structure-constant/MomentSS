@@ -10,6 +10,7 @@ import { useI18n } from '../i18n'
 import { FONT_OPTIONS } from '../lib/fonts'
 import { plainTextDocument } from '../lib/richText'
 import { EmojiPopover } from './EmojiPopover'
+import { isLightText } from '../lib/editorDocument'
 
 export default function RichTextEditor({ value, onChange }: { value: TextAppearance; onChange: (patch: Partial<TextAppearance>) => void }) {
   const { t } = useI18n()
@@ -26,7 +27,8 @@ export default function RichTextEditor({ value, onChange }: { value: TextAppeara
   const [sizeDraft, setSizeDraft] = useState(String(value.fontSize))
   const extensions = useMemo(() => [StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, codeBlock: false, code: false, horizontalRule: false }), TextStyleKit.configure({ backgroundColor: false, lineHeight: false }), TextAlign.configure({ types: ['paragraph', 'heading'] })], [])
   const initialContent = useRef(value.richText ?? plainTextDocument(value.text))
-  const editorProps = useMemo(() => ({ attributes: { role: 'textbox', 'aria-label': t('text.content'), 'aria-multiline': 'true', spellcheck: 'false' } }), [t])
+  const lightBase = isLightText(value.color)
+  const editorProps = useMemo(() => ({ attributes: { role: 'textbox', 'aria-label': t('text.content'), 'aria-multiline': 'true', spellcheck: 'false', class: lightBase ? 'editor-light-text' : '' } }), [t, lightBase])
   const editor = useEditor({
     extensions,
     content: initialContent.current,
@@ -54,16 +56,19 @@ export default function RichTextEditor({ value, onChange }: { value: TextAppeara
   }, [editor, value.richText, value.text])
   const currentSize = editor ? parseFloat(editor.getAttributes('textStyle').fontSize) || value.fontSize : value.fontSize
   useLayoutEffect(() => {
-    if (!editor || editor.isDestroyed || !editor.isInitialized) return
-    let root: HTMLElement
-    try { root = editor.view.dom } catch { return }
-    if (!root.isConnected) return
-    const nodes = [root, ...root.querySelectorAll<HTMLElement>('span')]
-    const light = nodes.map((node) => {
-      const rgb = getComputedStyle(node).color.match(/[\d.]+/g)?.slice(0, 3).map(Number) ?? [0, 0, 0]
-      return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722 > 185
+    if (!editor || editor.isDestroyed) return
+    // EditorContent attaches its view after the initial render. The base class
+    // above keeps white text legible immediately; inspect local marks after mount.
+    const frame = requestAnimationFrame(() => {
+      if (editor.isDestroyed) return
+      let root: HTMLElement
+      try { root = editor.view.dom } catch { return }
+      if (!root.isConnected) return
+      const nodes = [root, ...root.querySelectorAll<HTMLElement>('span')]
+      const light = nodes.map((node) => isLightText(getComputedStyle(node).color))
+      nodes.forEach((node, index) => node.classList.toggle('editor-light-text', light[index]))
     })
-    nodes.forEach((node, index) => node.classList.toggle('editor-light-text', light[index]))
+    return () => cancelAnimationFrame(frame)
   }, [editor, editor?.state.doc, value.color])
   useEffect(() => { if (document.activeElement !== sizeInput.current) setSizeDraft(String(Math.round(currentSize))) }, [currentSize, editor?.state.selection.from, editor?.state.selection.to])
   if (!editor) return null

@@ -27,6 +27,9 @@ test('white text is legible only in the editor, floating emoji restores selectio
   await picker.getByRole('searchbox').press('Escape')
   await expect(picker).toHaveCount(0)
   await expect(modal).toBeVisible()
+  await modal.getByRole('button', { name: '高级排版', exact: true }).click()
+  await expect(modal.locator('.tiptap')).toHaveClass(/editor-light-text/)
+  expect(await modal.locator('.tiptap').evaluate((el) => getComputedStyle(el).textShadow)).not.toBe('none')
   await modal.getByRole('button', { name: '完成', exact: true }).click()
   await saved(page)
   await page.reload()
@@ -37,7 +40,7 @@ test('white text is legible only in the editor, floating emoji restores selectio
   expect((await readFile((await (await download).path())!)).subarray(1, 4).toString()).toBe('PNG')
 })
 
-test('project package restores independently, and a second tab cannot overwrite the owner', async ({ page, context }) => {
+test('project package restores independently into a new task', async ({ page }) => {
   await page.goto('/')
   await page.locator('input[type=file]').setInputFiles(image())
   await saved(page)
@@ -51,6 +54,12 @@ test('project package restores independently, and a second tab cannot overwrite 
   await page.getByLabel('从项目包恢复为新任务', { exact: true }).setInputFiles(path)
   await expect(page.locator('.resource-tile')).toHaveCount(1)
   await expect(page.getByRole('combobox', { name: '当前排版任务', exact: true })).not.toHaveValue('legacy')
+})
+
+test('a second tab cannot overwrite the owner and reopens saved resources after the owner closes', async ({ page, context }) => {
+  await page.goto('/')
+  await page.locator('input[type=file]').setInputFiles(image())
+  await saved(page)
   const second = await context.newPage()
   await second.goto('/')
   await expect(second.getByText(/此工作区正在另一个标签页编辑/)).toBeVisible()

@@ -1,6 +1,20 @@
 import { expect, test } from '@playwright/test'
 test.use({ serviceWorkers: 'block' })
 
+test('white photo text has an editing aid on the first advanced-editor mount before any keystroke', async ({ page }) => {
+  await page.goto('/')
+  await page.locator('input[type=file]').setInputFiles({ name: 'white.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="800" height="600" fill="#8fd7df"/></svg>') })
+  await page.getByRole('button', { name: '放大并调整：white.svg', exact: true }).click()
+  await page.getByRole('button', { name: '添加图片文字', exact: true }).click()
+  const modal = page.getByRole('dialog')
+  await modal.getByRole('textbox', { name: '文字内容', exact: true }).fill('高级编辑器首次显示白字')
+  await modal.getByRole('button', { name: '高级排版', exact: true }).click()
+  const editor = modal.locator('.tiptap')
+  await expect(editor).toHaveText('高级编辑器首次显示白字')
+  await expect(editor).toHaveClass(/editor-light-text/)
+  expect(await editor.evaluate((node) => getComputedStyle(node).textShadow)).not.toBe('none')
+})
+
 test('a stale deployment manifest cannot unmount basic editing or silently replace formatted content', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
