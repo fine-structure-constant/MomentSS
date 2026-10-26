@@ -8,10 +8,21 @@ import { buildStitchLayout } from './stitchLayout'
 import { pasteLayerStyle, copyLayerStyle } from './layerStyles'
 import type { PhotoBlock } from '../types'
 import { unzipSync, zipSync } from 'fflate'
+import { encodeGraph } from './storageGraph'
 
 beforeEach(async () => { await new Promise<void>((resolve, reject) => { const r = indexedDB.deleteDatabase('liubai-collage'); r.onsuccess = () => resolve(); r.onerror = () => reject(r.error) }) })
 const photo = (id: string): PhotoBlock => ({ id, type: 'photo', name: id, blob: new Blob(['same image bytes'], { type: 'image/png' }), width: 800, height: 600 })
 describe('storage graph and editable packages', () => {
+  it('bounds concurrent original-image reads while hashing a batch', async () => {
+    let active = 0, maximum = 0
+    class MeasuredBlob extends Blob {
+      async arrayBuffer(): Promise<ArrayBuffer> { active++; maximum = Math.max(maximum, active); try { await new Promise((resolve) => setTimeout(resolve, 5)); return await super.arrayBuffer() } finally { active-- } }
+    }
+    const blobs = Array.from({ length: 20 }, (_, i) => new MeasuredBlob([String(i)]))
+    const result = await encodeGraph(blobs)
+    expect(result.blobs.size).toBe(20)
+    expect(maximum).toBeLessThanOrEqual(2)
+  })
   it('shares immutable bytes across resources/drafts and GC keeps all live references', async () => {
     const a = photo('a'), b = photo('b')
     await saveStitchWorkspace({ blocks: [a], settings: DEFAULT_SETTINGS, updatedAt: 1 }, [a, b])

@@ -1,10 +1,20 @@
 /** Content-addressed immutable bytes, separate from editable JSON records. */
 const hashes = new WeakMap<Blob, Promise<string>>()
+let hashing = 0
+const hashWaiters: Array<() => void> = []
+async function hashBlob(blob: Blob): Promise<string> {
+  // Queue before reading bytes: a large camera roll must not allocate every buffer at once.
+  await new Promise<void>((resolve) => { if (hashing < 2) { hashing++; resolve() } else hashWaiters.push(resolve) })
+  try {
+    const hash = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
+    return [...new Uint8Array(hash)].map((n) => n.toString(16).padStart(2, '0')).join('')
+  } finally { const next = hashWaiters.shift(); if (next) next(); else hashing-- }
+}
 export interface BlobReference { $blob: string; mime: string }
 export async function encodeGraph(value: unknown, blobs = new Map<string, Blob>()): Promise<{ value: unknown; blobs: Map<string, Blob> }> {
   const walk = async (item: unknown): Promise<unknown> => {
     if (item instanceof Blob) {
-      if (!hashes.has(item)) hashes.set(item, item.arrayBuffer().then((bytes) => crypto.subtle.digest('SHA-256', bytes)).then((hash) => [...new Uint8Array(hash)].map((n) => n.toString(16).padStart(2, '0')).join('')))
+      if (!hashes.has(item)) hashes.set(item, hashBlob(item).catch((error) => { hashes.delete(item); throw error }))
       const id = await hashes.get(item)!
       blobs.set(id, item)
       return { $blob: id, mime: item.type }
